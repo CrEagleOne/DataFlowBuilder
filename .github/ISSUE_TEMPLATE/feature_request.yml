@@ -1,0 +1,60 @@
+name: ✨ Demande de fonctionnalité
+description: Proposez une idée ou une amélioration
+title: "[Feat]: "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de proposer une amélioration ! Décrivez votre idée aussi clairement que possible.
+
+  - type: checkboxes
+    id: existing-issue
+    attributes:
+      label: Vérification préalable
+      options:
+        - label: J'ai vérifié que cette fonctionnalité n'a pas déjà été demandée.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Quel problème cette fonctionnalité résout-elle ?
+      description: Décrivez le contexte ou la frustration qui motive cette demande.
+      placeholder: "Je suis souvent frustré quand je dois..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution envisagée
+      description: Décrivez clairement ce que vous aimeriez voir implémenté.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considérées
+      description: Avez-vous envisagé d'autres approches ou contournements ?
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorité estimée
+      options:
+        - 🔴 Critique — bloque mon utilisation
+        - 🟠 Haute — manque important au quotidien
+        - 🟡 Moyenne — amélioration utile
+        - 🟢 Basse — nice to have
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte additionnel
+      description: Maquettes, exemples d'autres apps, liens utiles…

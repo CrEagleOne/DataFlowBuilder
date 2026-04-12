@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# .githooks/post-checkout
+# Exécuté après git checkout / git switch.
+# Installe automatiquement les dépendances si elles ont changé.
+set -euo pipefail
+
+PREV_HEAD="$1"
+NEW_HEAD="$2"
+BRANCH_CHECKOUT="$3"  # 1 si checkout de branche, 0 si fichier
+
+# Ne rien faire pour un checkout de fichier
+[ "$BRANCH_CHECKOUT" = "0" ] && exit 0
+
+YELLOW='\033[1;33m'; GREEN='\033[0;32m'; NC='\033[0m'
+
+# ── Vérifier si les dépendances ont changé ─────────────────────────────────
+CHANGED=$(git diff --name-only "$PREV_HEAD" "$NEW_HEAD" 2>/dev/null || true)
+
+needs_install() {
+  echo "$CHANGED" | grep -qE "$1"
+}
+
+if needs_install "^(requirements.*\.txt|pyproject\.toml|setup\.cfg|setup\.py)$"; then
+  echo -e "${YELLOW}⚠ Dépendances Python modifiées détectées.${NC}"
+  if command -v pip &>/dev/null; then
+    echo -e "${YELLOW}  Lancez : pip install -e '.[dev]' (ou pip install -r requirements.txt)${NC}"
+  fi
+fi
+
+if needs_install "^(package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$"; then
+  echo -e "${YELLOW}⚠ Dépendances Node.js modifiées détectées.${NC}"
+  echo -e "${YELLOW}  Lancez : npm install (ou yarn / pnpm install)${NC}"
+fi
+
+if needs_install "^\.pre-commit-config\.yaml$"; then
+  echo -e "${YELLOW}⚠ .pre-commit-config.yaml modifié.${NC}"
+  if command -v pre-commit &>/dev/null; then
+    echo -e "${YELLOW}  Mise à jour des hooks pre-commit...${NC}"
+    pre-commit install --install-hooks
+    echo -e "${GREEN}✓ Hooks pre-commit mis à jour.${NC}"
+  fi
+fi

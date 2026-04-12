@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussion générale
+    url: https://github.com/creagleone/DataFlowBuilder/discussions
+    about: Pour les questions, idées informelles et discussions générales.
+  - name: 📖 Documentation
+    url: https://github.com/creagleone/DataFlowBuilder/blob/main/README.md
+    about: Consultez d'abord la documentation avant d'ouvrir une issue.

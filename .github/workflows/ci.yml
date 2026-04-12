@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Ruff — check
+        run: ruff check src --output-format=github
+
+      - name: Ruff — format (dry-run)
+        run: ruff format --check src
+
+      - name: Mypy — type check
+        run: mypy src --ignore-missing-imports
+        continue-on-error: true
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Bandit scan
+        run: bandit -r src -c pyproject.toml -f json -o bandit-report.json || true
+
+      - name: Upload bandit report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }} / ${{ matrix.os }})
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11"]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install system libs (Linux — requis par Flet)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libgtk-3-dev libglib2.0-dev
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run pytest (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          pytest \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=80
+
+      - name: Run pytest (Windows)
+        if: runner.os == 'Windows'
+        run: pytest -v --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80
+
+  ci-ok:
+    name: CI — All checks passed
+    needs: [lint, security, test]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check all jobs
+        run: |
+          FAILED=false
+          [[ "${{ needs.lint.result }}"   != "success" ]] && FAILED=true
+          [[ "${{ needs.test.result }}"   != "success" ]] && FAILED=true
+
+          if [[ "$FAILED" == "true" ]]; then
+            echo "❌ Un ou plusieurs jobs ont échoué."
+            echo "  lint : ${{ needs.lint.result }}"
+            echo "  test : ${{ needs.test.result }}"
+            exit 1
+          fi
+          echo "✅ Tous les checks sont verts."

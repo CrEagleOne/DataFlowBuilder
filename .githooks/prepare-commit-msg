@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# .githooks/prepare-commit-msg
+# Pré-remplit le message de commit avec le numéro de ticket extrait du nom de branche.
+# Ex: feature/PROJ-123-add-login → préfixe "(PROJ-123) " dans le message.
+set -euo pipefail
+
+COMMIT_MSG_FILE="$1"
+COMMIT_SOURCE="${2:-}"
+
+# Ne pas modifier les merges, amends ou messages déjà fournis via -m
+if [ "$COMMIT_SOURCE" = "merge" ] || [ "$COMMIT_SOURCE" = "commit" ] || [ "$COMMIT_SOURCE" = "message" ]; then
+  exit 0
+fi
+
+# Extraction du ticket depuis le nom de branche (JIRA, GitHub Issues, Linear…)
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+TICKET=$(echo "$BRANCH" | grep -oP '[A-Z]+-[0-9]+|#[0-9]+' | head -1 || true)
+
+if [ -n "$TICKET" ]; then
+  # Insérer le ticket en début de message existant
+  CURRENT=$(cat "$COMMIT_MSG_FILE")
+  # Ne pas dupliquer si déjà présent
+  if ! echo "$CURRENT" | grep -q "$TICKET"; then
+    printf "# Ticket détecté depuis la branche : %s\n%s" "$TICKET" "$CURRENT" > "$COMMIT_MSG_FILE"
+  fi
+fi

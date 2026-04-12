@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# .githooks/commit-msg
+# Valide le message de commit selon la convention Conventional Commits.
+# Compatible avec git-cliff pour la génération automatique du CHANGELOG.
+set -euo pipefail
+
+RED='\033[0;31m'; CYAN='\033[0;36m'; NC='\033[0m'
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Ignorer les merges, rebases et fixups automatiques
+if echo "$COMMIT_MSG" | grep -qE '^(Merge|Revert|fixup!|squash!)'; then
+  exit 0
+fi
+
+# ── Pattern Conventional Commits ───────────────────────────────────────────
+# Format : <type>[(<scope>)][!]: <description>
+# Emojis optionnels en préfixe (ex: ✨ feat: ...)
+PATTERN='^(✨|🐛|📝|♻️|🔧|🚀|⚡|🔒|🧪|🏗️|⬆️|⬇️|🗑️|🎨|💡|🌐)?\s?'
+PATTERN+='(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)'
+PATTERN+='(\([a-zA-Z0-9_\-\/]+\))?'
+PATTERN+='(\!)?: .{1,100}$'
+
+if ! echo "$COMMIT_MSG" | head -1 | grep -qP "$PATTERN"; then
+  echo -e "${RED}✗ Message de commit invalide.${NC}" >&2
+  echo "" >&2
+  echo -e "${CYAN}Format attendu (Conventional Commits) :${NC}" >&2
+  echo "  <type>[(<scope>)][!]: <description>" >&2
+  echo "" >&2
+  echo "Types valides :" >&2
+  echo "  feat     → nouvelle fonctionnalité" >&2
+  echo "  fix      → correction de bug" >&2
+  echo "  docs     → documentation uniquement" >&2
+  echo "  refactor → refactoring (ni feat ni fix)" >&2
+  echo "  test     → ajout/modification de tests" >&2
+  echo "  chore    → maintenance, dépendances" >&2
+  echo "  ci       → intégration continue" >&2
+  echo "  perf     → amélioration des performances" >&2
+  echo "" >&2
+  echo "Exemples valides :" >&2
+  echo "  feat(auth): add OAuth2 support" >&2
+  echo "  fix: handle null pointer in parser" >&2
+  echo "  feat!: redesign public API (BREAKING CHANGE)" >&2
+  echo "  ✨ feat(api): add pagination endpoint" >&2
+  echo "" >&2
+  echo -e "${RED}Message reçu :${NC} $COMMIT_MSG" >&2
+  exit 1
+fi
+
+# Longueur maximale de la première ligne
+FIRST_LINE=$(echo "$COMMIT_MSG" | head -1)
+if [ ${#FIRST_LINE} -gt 120 ]; then
+  echo -e "${RED}✗ Première ligne trop longue (${#FIRST_LINE}/120 caractères).${NC}" >&2
+  exit 1
+fi

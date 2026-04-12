@@ -1,0 +1,11 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  requirements.txt — wrapper minimal pour les outils qui exigent un fichier plat
+#  (Docker, Heroku, certains IDE…).
+#
+#  Source de vérité : pyproject.toml
+#  Pour installer : pip install -e .          (runtime)
+#                   pip install -e ".[dev]"   (dev + tests)
+#                   pip install -e ".[build]" (packaging exécutable)
+#                   pip install -e ".[all]"   (tout)
+# ─────────────────────────────────────────────────────────────────────────────
+-e .

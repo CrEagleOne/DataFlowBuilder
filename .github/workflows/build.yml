@@ -1,0 +1,126 @@
+name: Build Flet App
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version string injected by release.yml (ex: 1.2.0)"
+        required: false
+        type: string
+        default: "dev"
+    outputs:
+      artifact-linux:
+        description: "Name of the Linux build artifact"
+        value: ${{ jobs.build.outputs.artifact-linux }}
+      artifact-macos:
+        description: "Name of the macOS build artifact"
+        value: ${{ jobs.build.outputs.artifact-macos }}
+      artifact-windows:
+        description: "Name of the Windows build artifact"
+        value: ${{ jobs.build.outputs.artifact-windows }}
+
+env:
+  UV_PYTHON: 3.12
+  PYTHONUTF8: 1
+  APP_NAME: DataFlowBuilder
+
+  # https://flet.dev/docs/reference/environment-variables
+  FLET_CLI_NO_RICH_OUTPUT: 1
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+
+    outputs:
+      artifact-linux:   ${{ steps.set-artifact-name.outputs.artifact-linux }}
+      artifact-macos:   ${{ steps.set-artifact-name.outputs.artifact-macos }}
+      artifact-windows: ${{ steps.set-artifact-name.outputs.artifact-windows }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # -------- Desktop --------
+          - name: linux
+            runner: ubuntu-latest
+            build_cmd: "flet build linux"
+            artifact_path: build/linux
+            needs_linux_deps: true
+
+          - name: macos
+            runner: macos-latest
+            build_cmd: "flet build macos"
+            artifact_path: build/macos
+            needs_linux_deps: false
+
+          - name: windows
+            runner: windows-latest
+            build_cmd: "flet build windows"
+            artifact_path: build/windows
+            needs_linux_deps: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install Linux dependencies
+        if: matrix.needs_linux_deps
+        shell: bash
+        run: |
+            sudo apt update --allow-releaseinfo-change
+            sudo apt-get install -y --no-install-recommends \
+              clang ninja-build libgtk-3-dev libasound2-dev libmpv-dev mpv \
+              libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
+              gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
+              gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 \
+              gstreamer1.0-qt5 gstreamer1.0-pulseaudio pkg-config libsecret-1-0 libsecret-1-dev
+            sudo apt-get clean
+
+      - name: Build app
+        shell: bash
+        run: |
+          uv run ${{ matrix.build_cmd }} --yes --verbose
+
+      # ── tar.gz (Linux / macOS) ────────────────────────────────────────────
+      # -C changes into the artifact directory before archiving, so the
+      # top-level entries of the tarball are the app files directly — no
+      # extra folder level and no archive-within-archive.
+      - name: Package artifact (Linux / macOS)
+        if: matrix.name != 'windows'
+        shell: bash
+        run: |
+          VERSION="${{ inputs.version || 'dev' }}"
+          ARTIFACT_NAME="${{ env.APP_NAME }}-${{ matrix.name }}-${VERSION}.tar.gz"
+          tar -czf "${ARTIFACT_NAME}" -C "${{ matrix.artifact_path }}" .
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_ENV
+
+      # ── Zip (Windows) ────────────────────────────────────────────────────
+      - name: Package artifact (Windows)
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}"
+          if (-not $version) { $version = "dev" }
+          $artifactName = "${{ env.APP_NAME }}-windows-${version}.zip"
+          Compress-Archive -Path "${{ matrix.artifact_path }}\*" -DestinationPath $artifactName -Force
+          echo "ARTIFACT_NAME=$artifactName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # ── Expose artifact name as a job output ─────────────────────────────
+      - name: Set artifact name output
+        id: set-artifact-name
+        shell: bash
+        run: |
+          echo "artifact-${{ matrix.name }}=${{ env.ARTIFACT_NAME }}" >> $GITHUB_OUTPUT
+
+      # ── Upload the archive ───────────────────────────────────────────────
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_NAME }}
+          if-no-files-found: error
+          overwrite: false

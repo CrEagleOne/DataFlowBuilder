@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Data Flow Builder — Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"/>
+<style>
+/* ─── Variables ─────────────────────────────────────────── */
+:root {
+  --bg: #0d0f12;
+  --bg2: #13161b;
+  --bg3: #1a1e25;
+  --border: rgba(255,255,255,0.07);
+  --border-active: rgba(255,255,255,0.15);
+  --text: #c9d1de;
+  --text-muted: #5c6678;
+  --text-dim: #7d8a9c;
+  --accent: #f59e0b;
+  --accent2: #fbbf24;
+  --accent-dim: rgba(245,158,11,0.12);
+  --accent-glow: rgba(245,158,11,0.06);
+  --blue: #60a5fa;
+  --green: #34d399;
+  --red: #f87171;
+  --purple: #a78bfa;
+  --sidebar-w: 272px;
+  --header-h: 56px;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --display: 'Syne', sans-serif;
+  --transition: 0.18s cubic-bezier(.4,0,.2,1);
+}
+
+/* ─── Reset & Base ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent2); }
+::selection { background: rgba(245,158,11,0.25); }
+
+/* ─── Layout ────────────────────────────────────────────── */
+#app { display: flex; min-height: 100vh; }
+
+/* ─── Header ────────────────────────────────────────────── */
+#header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: var(--header-h);
+  background: rgba(13,15,18,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+}
+#header .logo {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  display: flex; align-items: center; gap: 10px;
+  white-space: nowrap;
+}
+#header .logo .icon {
+  width: 30px; height: 30px;
+  background: var(--accent);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+#header .badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 20px;
+}
+#header .spacer { flex: 1; }
+#header .gh-link {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+#header .gh-link:hover { color: var(--text); border-color: var(--border-active); }
+#menu-btn {
+  display: none;
+  background: none; border: none; color: var(--text); cursor: pointer;
+  padding: 6px; border-radius: var(--radius-sm);
+}
+
+/* ─── Sidebar ───────────────────────────────────────────── */
+#sidebar {
+  position: fixed;
+  top: var(--header-h); left: 0; bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 24px 0 40px;
+  z-index: 50;
+  transition: transform var(--transition);
+}
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
+
+.nav-group { margin-bottom: 4px; }
+.nav-group-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 12px 20px 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 20px;
+  font-size: 13.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: var(--transition);
+  border-left: 2px solid transparent;
+  margin: 1px 0;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.nav-item.active {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border-left-color: var(--accent);
+}
+.nav-item .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+
+/* ─── Main Content ──────────────────────────────────────── */
+#main {
+  margin-left: var(--sidebar-w);
+  margin-top: var(--header-h);
+  flex: 1;
+  min-height: calc(100vh - var(--header-h));
+}
+.page { display: none; padding: 56px 80px 80px 72px; max-width: 900px; }
+.page.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ─── Typography ────────────────────────────────────────── */
+.page h1 {
+  font-family: var(--display);
+  font-size: 36px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+.page h2 {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 52px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: -0.01em;
+}
+.page h3 {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin: 32px 0 12px;
+}
+.page h4 {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 24px 0 8px;
+}
+.page p { margin-bottom: 16px; color: var(--text); }
+.page ul, .page ol {
+  padding-left: 20px; margin-bottom: 16px;
+}
+.page li { margin-bottom: 6px; color: var(--text); }
+.page strong { color: #e2e8f0; font-weight: 500; }
+
+/* Lead paragraph */
+.lead {
+  font-size: 17px;
+  color: var(--text-dim);
+  line-height: 1.8;
+  margin-bottom: 40px;
+  max-width: 680px;
+}
+
+/* ─── Inline code ───────────────────────────────────────── */
+code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--accent2);
+}
+pre { margin: 20px 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+pre code { background: none; border: none; padding: 0; color: inherit; font-size: 13px; }
+pre[class*="language-"] { background: #0f1117 !important; padding: 20px 24px; }
+
+/* ─── Tables ────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; margin: 20px 0; border-radius: var(--radius); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+thead { background: var(--bg3); }
+th {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+td:first-child { font-weight: 500; color: #e2e8f0; }
+td code { font-size: 11.5px; }
+
+/* ─── Callouts ──────────────────────────────────────────── */
+.callout {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  border: 1px solid;
+  margin: 24px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.callout-icon { font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+.callout.info { background: rgba(96,165,250,0.06); border-color: rgba(96,165,250,0.2); color: #93c5fd; }
+.callout.warning { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.2); color: #fcd34d; }
+.callout.danger { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.2); color: #fca5a5; }
+.callout.tip { background: rgba(52,211,153,0.06); border-color: rgba(52,211,153,0.2); color: #6ee7b7; }
+
+/* ─── Cards (home page) ─────────────────────────────────── */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); gap: 12px; margin: 32px 0; }
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--accent-dim), transparent 60%);
+  opacity: 0;
+  transition: var(--transition);
+}
+.card:hover { border-color: rgba(245,158,11,0.25); transform: translateY(-2px); }
+.card:hover::before { opacity: 1; }
+.card .card-icon { font-size: 24px; margin-bottom: 12px; }
+.card .card-title { font-family: var(--display); font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 6px; }
+.card .card-desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
+.card .card-arrow { position: absolute; right: 16px; bottom: 16px; color: var(--accent); opacity: 0; transition: var(--transition); font-size: 18px; }
+.card:hover .card-arrow { opacity: 1; }
+
+/* ─── Hero (home page) ──────────────────────────────────── */
+.hero {
+  padding: 56px 80px 40px 72px;
+  border-bottom: 1px solid var(--border);
+  background: radial-gradient(ellipse 600px 300px at 60% -50px, rgba(245,158,11,0.05), transparent);
+}
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.hero-eyebrow::before { content: ''; display: block; width: 20px; height: 1px; background: var(--accent); }
+.hero h1 {
+  font-family: var(--display);
+  font-size: 52px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 20px;
+}
+.hero h1 span { color: var(--accent); }
+.hero .desc {
+  font-size: 17px;
+  color: var(--text-dim);
+  max-width: 540px;
+  line-height: 1.75;
+  margin-bottom: 36px;
+}
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 48px; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent);
+  color: #0d0f12;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 22px;
+  border-radius: var(--radius);
+  transition: var(--transition);
+  cursor: pointer;
+  border: none;
+}
+.btn-primary:hover { background: var(--accent2); color: #0d0f12; transform: translateY(-1px); }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  padding: 10px 22px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-active);
+  transition: var(--transition);
+  cursor: pointer;
+}
+.btn-secondary:hover { color: var(--text); border-color: var(--text-muted); }
+
+/* Feature table */
+.feat-table { width: 100%; border-collapse: collapse; margin: 0 0 40px; }
+.feat-table td { padding: 8px 0; border: none; font-size: 14px; }
+.feat-table td:first-child { color: var(--text-muted); font-size: 12px; font-family: var(--mono); padding-right: 16px; white-space: nowrap; }
+.feat-table td:last-child { color: var(--text); }
+
+/* ─── Badge ─────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  font-weight: 500;
+}
+.badge-amber { background: rgba(245,158,11,0.1); color: var(--accent2); border-color: rgba(245,158,11,0.25); }
+.badge-blue { background: rgba(96,165,250,0.1); color: var(--blue); border-color: rgba(96,165,250,0.25); }
+.badge-green { background: rgba(52,211,153,0.1); color: var(--green); border-color: rgba(52,211,153,0.25); }
+.badge-purple { background: rgba(167,139,250,0.1); color: var(--purple); border-color: rgba(167,139,250,0.25); }
+.badge-red { background: rgba(248,113,113,0.1); color: var(--red); border-color: rgba(248,113,113,0.25); }
+
+/* ─── Section divider ───────────────────────────────────── */
+.page-content { padding: 56px 80px 80px 72px; max-width: 900px; }
+
+/* ─── NIR diagram ───────────────────────────────────────── */
+.nir-diagram {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: #0f1117;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  overflow-x: auto;
+  margin: 20px 0;
+}
+.nir-bit { display: inline-block; text-align: center; }
+.nir-val { color: var(--accent2); font-size: 15px; font-weight: 600; }
+.nir-label { color: var(--text-muted); font-size: 10px; }
+
+/* ─── Responsive ────────────────────────────────────────── */
+@media (max-width: 900px) {
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.open { transform: translateX(0); }
+  #main { margin-left: 0; }
+  .page { padding: 32px 24px 60px; }
+  .hero { padding: 32px 24px 32px; }
+  .hero h1 { font-size: 36px; }
+  .page-content { padding: 32px 24px 60px; }
+  #menu-btn { display: flex; }
+  .card-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 500px) {
+  .card-grid { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 28px; }
+}
+
+/* ─── Overlay ───────────────────────────────────────────── */
+#overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(0,0,0,0.5);
+}
+#overlay.show { display: block; }
+
+/* ─── Breadcrumb ────────────────────────────────────────── */
+.breadcrumb {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  display: flex; align-items: center; gap: 6px;
+}
+.breadcrumb span { color: var(--text-dim); }
+.breadcrumb .sep { color: var(--border-active); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header id="header">
+  <button id="menu-btn" onclick="toggleMenu()" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+  <div class="logo">
+    <div class="icon">🗂️</div>
+    Data Flow Builder
+  </div>
+  <div class="badge">v1.0.0</div>
+  <div class="spacer"></div>
+  <a href="#" class="gh-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+    GitHub
+  </a>
+</header>
+
+<div id="overlay" onclick="closeMenu()"></div>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="nav-group">
+    <div class="nav-item active" onclick="navigate('home')" data-page="home">
+      <span class="nav-icon">🏠</span> Accueil
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Démarrage</div>
+    <div class="nav-item" onclick="navigate('install')" data-page="install">
+      <span class="nav-icon">🚀</span> Installation
+    </div>
+    <div class="nav-item" onclick="navigate('concepts')" data-page="concepts">
+      <span class="nav-icon">📐</span> Concepts fondamentaux
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Référence</div>
+    <div class="nav-item" onclick="navigate('field-types')" data-page="field-types">
+      <span class="nav-icon">📋</span> Types de champs
+    </div>
+    <div class="nav-item" onclick="navigate('field-config')" data-page="field-config">
+      <span class="nav-icon">⚙️</span> Configuration champ
+    </div>
+    <div class="nav-item" onclick="navigate('nir')" data-page="nir">
+      <span class="nav-icon">🔗</span> Cohérence NIR
+    </div>
+    <div class="nav-item" onclick="navigate('dates')" data-page="dates">
+      <span class="nav-icon">🗓️</span> Champs Date
+    </div>
+    <div class="nav-item" onclick="navigate('presets')" data-page="presets">
+      <span class="nav-icon">🔢</span> Presets de valeurs
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Fonctionnalités</div>
+    <div class="nav-item" onclick="navigate('folders')" data-page="folders">
+      <span class="nav-icon">📁</span> Dossiers
+    </div>
+    <div class="nav-item" onclick="navigate('geo')" data-page="geo">
+      <span class="nav-icon">🌍</span> API Géographique
+    </div>
+    <div class="nav-item" onclick="navigate('import-export')" data-page="import-export">
+      <span class="nav-icon">📦</span> Import / Export JSON
+    </div>
+    <div class="nav-item" onclick="navigate('compliance')" data-page="compliance">
+      <span class="nav-icon">✅</span> Vérification de conformité
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Développement</div>
+    <div class="nav-item" onclick="navigate('cicd')" data-page="cicd">
+      <span class="nav-icon">🔧</span> CI/CD & Build
+    </div>
+    <div class="nav-item" onclick="navigate('faq')" data-page="faq">
+      <span class="nav-icon">❓</span> FAQ
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main id="main">
+
+<!-- ═══════════════════ HOME ═══════════════════ -->
+<div class="hero" id="page-home">
+  <div class="hero-eyebrow">Documentation officielle</div>
+  <h1>Data Flow<br/><span>Builder</span></h1>
+  <p class="desc">Générez des fichiers de données de test structurées — CSV, positionnel, JSON, XML — avec des données françaises réalistes (NIR, SIRET, IBAN, communes).</p>
+  <div class="hero-actions">
+    <button class="btn-primary" onclick="navigate('install')">🚀 Démarrer</button>
+    <button class="btn-secondary" onclick="navigate('concepts')">📐 Concepts</button>
+    <button class="btn-secondary" onclick="navigate('field-types')">📋 Référence</button>
+  </div>
+
+  <table class="feat-table">
+    <tr><td>Format</td><td>CSV · Positionnel · JSON · XML</td></tr>
+    <tr><td>Données</td><td>NIR · SIRET · IBAN · Adresses · Communes via API gouv.fr</td></tr>
+    <tr><td>Interface</td><td>Desktop multiplateforme (Windows / macOS / Linux)</td></tr>
+    <tr><td>Cohérence</td><td>Liaison automatique NIR ↔ Prénom ↔ Civilité ↔ Date naissance</td></tr>
+    <tr><td>Organisation</td><td>Dossiers imbriqués · Drag & drop · Import/Export JSON</td></tr>
+    <tr><td>Conformité</td><td>Vérification d'un fichier réel vs mapping : encodage, types, formats, SIRET, NIR, IBAN…</td></tr>
+    <tr><td>Stack</td><td>Python 3.11+ · Flet · Faker FR</td></tr>
+  </table>
+</div>
+
+<div class="page-content" id="page-home-cards">
+  <div class="card-grid">
+    <div class="card" onclick="navigate('install')">
+      <div class="card-icon">🚀</div>
+      <div class="card-title">Installation</div>
+      <div class="card-desc">Prérequis, pip, binaires autonomes, structure des données.</div>
+      <div class="card-arrow">→</div>
+    </div>
+    <div class="card" onclick="navigate('concepts')">
+      <div class="card-icon">📐</div>
+      <div class="card-title">Concepts fondamentaux</div>
+      <div class="card-desc">Flux, sections en-tête/données/pied de page, champs, dossiers.</div>
+      <div class="card-arrow">→</div>
+    </div>
+    <div class="card" onclick="navigate('field-types')">
+      <div class="card-icon">📋</div>
+      <div class="card-title">Types de champs</div>
+      <div class="card-desc">Référence complète alpha, num, date, bool, decimal.</div>
+      <div class="card-arrow">→</div>
+    </div>
+    <div class="card" onclick="navigate('nir')">
+      <div class="card-icon">🔗</div>
+      <div class="card-title">Cohérence NIR</div>
+      <div class="card-desc">Synchronisation automatique NIR ↔ prénom ↔ civilité ↔ date.</div>
+      <div class="card-arrow">→</div>
+    </div>
+    <div class="card" onclick="navigate('presets')">
+      <div class="card-icon">🔢</div>
+      <div class="card-title">Presets</div>
+      <div class="card-desc">Valeurs prédéfinies, distribution pondérée, format JSON.</div>
+      <div class="card-arrow">→</div>
+    </div>
+    <div class="card" onclick="navigate('import-export')">
+      <div class="card-icon">📦</div>
+      <div class="card-title">Import / Export</div>
+      <div class="card-desc">Format JSON complet, partage de templates, rétrocompatibilité.</div>
+      <div class="card-arrow">→</div>
+    </div>
+    <div class="card" onclick="navigate('compliance')">
+      <div class="card-icon">✅</div>
+      <div class="card-title">Vérification de conformité</div>
+      <div class="card-desc">Contrôlez un fichier réel par rapport au mapping d'un flux : encodage, délimiteur, types, formats, SIRET, NIR…</div>
+      <div class="card-arrow">→</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ INSTALL ═══════════════════ -->
+<div class="page" id="page-install">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>installation</span></div>
+  <h1>🚀 Installation & Démarrage</h1>
+  <p class="lead">Data Flow Builder fonctionne sur Windows, macOS et Linux. Choisissez l'option adaptée à votre usage.</p>
+
+  <h2>Prérequis</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Composant</th><th>Version minimale</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Python</td><td><code>3.11+</code></td><td>Requis uniquement pour l'installation depuis les sources</td></tr>
+      <tr><td>pip</td><td>Dernière version</td><td><code>pip install --upgrade pip</code></td></tr>
+      <tr><td>OS</td><td>Windows 10+, macOS 12+, Ubuntu 20.04+</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Option 1 — Depuis les sources</h2>
+  <p>Recommandée pour les développeurs souhaitant modifier ou contribuer au projet.</p>
+  <pre><code class="language-bash"># 1. Cloner le dépôt
+git clone https://github.com/votre-org/DataFlowBuilder.git
+cd DataFlowBuilder
+
+# 2. Créer un environnement virtuel (recommandé)
+python -m venv .venv
+source .venv/bin/activate      # Linux/macOS
+.venv\Scripts\activate.bat     # Windows
+
+# 3. Installer
+pip install -e .
+
+# 4. Lancer
+python main.py</code></pre>
+
+  <h2>Option 2 — Binaire autonome</h2>
+  <p>Aucune installation de Python requise. Téléchargez depuis la page <strong>Releases</strong>.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Système</th><th>Fichier</th></tr></thead>
+    <tbody>
+      <tr><td>Windows 64-bit</td><td><code>DataFlowBuilder-windows</code></td></tr>
+      <tr><td>macOS Apple Silicon</td><td><code>DataFlowBuilder-macos</code></td></tr>
+      <tr><td>Linux 64-bit</td><td><code>DataFlowBuilder-linux</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout info"><div class="callout-icon">ℹ️</div><div>Sur macOS, au premier lancement, faire <strong>clic droit → Ouvrir</strong> pour contourner Gatekeeper.</div></div>
+
+  <h2>Dépendances de développement</h2>
+  <pre><code class="language-bash">pip install -e ".[dev]"
+pre-commit install</code></pre>
+  <p>Installe : <code>pytest</code>, <code>ruff</code>, <code>mypy</code>, <code>bandit</code>, <code>pre-commit</code>, <code>pyinstaller</code>.</p>
+
+  <h2>Structure des données persistées</h2>
+  <pre><code class="language-bash">{tempdir}/DataFlowBuilder/
+├── flows/                   # Un fichier JSON par flux
+│   └── flow_1234567890.json
+├── data/
+│   ├── folders.json         # Arborescence des dossiers
+│   └── communes_cache.json  # Cache API géographique
+├── generated/               # Données générées (un sous-dossier par flux)
+│   └── nom_du_flux/
+│       └── export_2024-01-15.csv
+├── assets/                  # Ressources applicatives (favicon.ico)
+└── logs/
+    └── dataflow_builder.log</code></pre>
+  <div class="callout tip"><div class="callout-icon">💡</div><div><strong>Windows :</strong> <code>%TEMP%\DataFlowBuilder\</code> — <strong>Linux/macOS :</strong> <code>/tmp/DataFlowBuilder/</code></div></div>
+
+  <h2>Premier lancement</h2>
+  <ol>
+    <li>L'écran d'accueil <strong>Mes flux</strong> s'affiche — vide au premier démarrage</li>
+    <li>Cliquez sur <strong>+</strong> dans la barre latérale pour créer un flux</li>
+    <li>L'éditeur s'ouvre sur un flux vierge nommé "Nouveau flux"</li>
+    <li>Configurez le format, ajoutez des champs, cliquez <strong>Aperçu</strong></li>
+    <li><strong>Sauvegarder</strong> pour conserver le flux</li>
+  </ol>
+</div>
+
+<!-- ═══════════════════ CONCEPTS ═══════════════════ -->
+<div class="page" id="page-concepts">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>concepts</span></div>
+  <h1>📐 Concepts fondamentaux</h1>
+  <p class="lead">Comprendre la hiérarchie Flux → Sections → Champs est essentiel pour tirer le meilleur parti de Data Flow Builder.</p>
+
+  <h2>Vue d'ensemble</h2>
+  <pre><code class="language-text">Application
+└── Dossiers (arborescence illimitée)
+    └── Flux (template de fichier)
+        ├── Configuration  (format, encodage, nb lignes…)
+        ├── En-tête        (0 ou 1 ligne fixe en début)
+        ├── Données        (1-N structures × numRows répétitions)
+        │   ├── Ligne A  [champ1, champ2, …]
+        │   └── Ligne B  [champ1, champ2, …]
+        └── Pied de page   (0 ou 1 ligne fixe en fin)</code></pre>
+
+  <h2>Le Flux</h2>
+  <p>Un <strong>flux</strong> est le concept central — un template de fichier de données.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Paramètre</th><th>Valeurs possibles</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Format</td><td><code>csv</code> · <code>fixed</code> · <code>json</code> · <code>xml</code></td><td>Format du fichier de sortie</td></tr>
+      <tr><td>Délimiteur</td><td><code>,</code> · <code>;</code> · <code>|</code> · <code>\t</code></td><td>Séparateur de champs (CSV)</td></tr>
+      <tr><td>Saut de ligne</td><td><code>CRLF</code> · <code>LF</code></td><td>Windows ou Unix</td></tr>
+      <tr><td>Encodage</td><td><code>UTF-8</code> · <code>ISO-8859-1</code>…</td><td>Encodage du fichier généré</td></tr>
+      <tr><td>Nombre de lignes</td><td>Entier ≥ 1</td><td>Répétitions des lignes de données</td></tr>
+      <tr><td>Délimiteur final</td><td><code>true</code> · <code>false</code></td><td>Ajoute le délimiteur en fin de chaque ligne (CSV)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Les Sections</h2>
+  <h3>En-tête (<code>headerFields</code>)</h3>
+  <p>Générée <strong>une seule fois</strong> en début de fichier. Typiquement : enregistrement de contrôle, date de création, compteur de lignes.</p>
+
+  <h3>Données (<code>fields</code>)</h3>
+  <p>Contient une ou plusieurs <strong>structures de lignes</strong>, chacune répétée <code>numRows</code> fois.</p>
+  <pre><code class="language-text">Exemple — 2 structures, numRows = 3 :
+[En-tête]
+[Ligne A] ← répétition 1
+[Ligne B] ← répétition 1
+[Ligne A] ← répétition 2
+[Ligne B] ← répétition 2
+[Ligne A] ← répétition 3
+[Ligne B] ← répétition 3
+[Pied de page]</code></pre>
+
+  <h3>Pied de page (<code>footerFields</code>)</h3>
+  <p>Générée <strong>une seule fois</strong> en fin de fichier. Utile pour les enregistrements de clôture ou les totaux.</p>
+
+  <h2>Le Champ</h2>
+  <p>Un champ produit <strong>une valeur par ligne générée</strong>. Il a un type de base et un sous-type.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Propriété</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Nom</td><td>Libellé affiché dans l'interface</td></tr>
+      <tr><td>Type de base</td><td><code>alpha</code>, <code>num</code>, <code>date</code>, <code>bool</code>, <code>decimal</code></td></tr>
+      <tr><td>Sous-type</td><td>Spécialisation (email, NIR, SIRET, dateNaissance…)</td></tr>
+      <tr><td>Longueur</td><td>Taille maximale (troncature automatique)</td></tr>
+      <tr><td>Inclure dans la sortie</td><td>Si décoché : champ calculé mais non écrit dans le fichier</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Priorité de génération</h4>
+  <pre><code class="language-text">1. Compteur de lignes  (subType == "compteurLignes")
+2. Concaténation       (subType == "concat")
+3. Incrément           (num/none + increment == true)
+4. Preset prédéfini    (si useRandom == false)
+5. Génération aléatoire (Faker FR + logique métier)</code></pre>
+
+  <h2>Les 4 onglets de l'éditeur</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Onglet</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td>⚙️ Configuration</td><td>Format, délimiteur, encodage, nombre de lignes…</td></tr>
+      <tr><td>📋 En-tête</td><td>Champs de la ligne d'en-tête</td></tr>
+      <tr><td>📊 Données</td><td>Structures de lignes (multi-lignes supporté)</td></tr>
+      <tr><td>📄 Pied de page</td><td>Champs du pied de page</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ═══════════════════ FIELD TYPES ═══════════════════ -->
+<div class="page" id="page-field-types">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>référence</span><span class="sep">/</span><span>types-de-champs</span></div>
+  <h1>📋 Référence des types de champs</h1>
+  <p class="lead">5 types de base, 30+ sous-types spécialisés pour les données françaises.</p>
+
+  <h2>🔤 Alpha — Champs textuels</h2>
+
+  <h3><code>alpha / none</code> — Texte libre</h3>
+  <p>Génère une chaîne aléatoire ou applique la valeur par défaut si elle est renseignée.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Paramètre</th><th>Valeurs</th><th>Défaut</th></tr></thead>
+    <tbody>
+      <tr><td>Longueur</td><td>Entier</td><td><code>10</code></td></tr>
+      <tr><td>Valeur par défaut</td><td>Texte libre</td><td><code>""</code></td></tr>
+      <tr><td>Padding</td><td><code>none</code> · <code>before</code> · <code>after</code> · <code>both</code></td><td><code>none</code></td></tr>
+      <tr><td>Caractère de padding</td><td>1 caractère</td><td><code>" "</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><code>alpha / email</code></h3>
+  <p>Adresse e-mail réaliste via Faker FR. Format : <code><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="146466717a7b793a7a7b7954707b79757d7a713a7266">[email&#160;protected]</a></code>. Longueur défaut : <code>50</code>.</p>
+
+  <h3><code>alpha / phone</code> / <code>phonePlus33</code></h3>
+  <p>Numéro FR national (<code>0X XX XX XX XX</code>, long. 14) ou international (<code>+33 X XX XX XX XX</code>, long. 15).</p>
+
+  <h3><code>alpha / nom</code> / <code>prenom</code></h3>
+  <p>Nom de famille ou prénom français (Faker FR). Longueur défaut : <code>30</code>.</p>
+
+  <h3><code>alpha / prenomNir</code> ⚡</h3>
+  <p>Prénom <strong>cohérent avec le genre du NIR</strong> de la même ligne. NIR <code>1…</code> → masculin, <code>2…</code> → féminin. Le lien vers le champ NIR source est configurable (voir <a onclick="navigate('nir')">Cohérence NIR</a>).</p>
+
+  <h3><code>alpha / civilite</code></h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Paramètre</th><th>Valeurs</th></tr></thead>
+    <tbody>
+      <tr><td>Catégorie</td><td><code>classiques</code> · <code>administratives</code> · <code>professionnelles</code></td></tr>
+      <tr><td>Format de sortie</td><td><code>code</code> (M, Mme) · <code>label</code> (Monsieur, Madame)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Catégorie</th><th>Civilités</th></tr></thead>
+    <tbody>
+      <tr><td><code>classiques</code></td><td>M, Mme, Mlle</td></tr>
+      <tr><td><code>administratives</code></td><td>M, Mme, Dr, Pr, Me, Fr, Sr, Père, Abbé, Rabbin, Imam</td></tr>
+      <tr><td><code>professionnelles</code></td><td>Dr, Pr, Me, Ing, Dir, Pres, Chef</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><code>alpha / civiliteNir</code> ⚡</h3>
+  <p>Civilité cohérente avec le genre du NIR. Mêmes paramètres que <code>civilite</code>. Le lien vers le champ NIR source est configurable (voir <a onclick="navigate('nir')">Cohérence NIR</a>).</p>
+
+  <h3><code>alpha / adresse</code> / <code>adresseComplete</code></h3>
+  <p><code>adresse</code> : numéro + rue (long. 100). <code>adresseComplete</code> : adresse complète sur une ligne (long. 200). <code>adresseComplete</code> peut être liée à un champ <code>codePostal</code> pour inclure automatiquement la commune et le code postal correspondants.</p>
+
+  <h3><code>alpha / ville</code></h3>
+  <p>Commune française via API geo.api.gouv.fr. Filtrable par préfixe de code postal (<code>31*</code>, <code>75*</code>… ou <code>*</code> pour toutes les communes). Peut être liée à un champ <code>codePostal</code> de la même ligne pour garantir la cohérence commune/code postal (voir <a onclick="navigate('geo')">API Géographique</a>).</p>
+
+  <h3><code>alpha / lieuNaissance</code> ⚡</h3>
+  <p>Commune de naissance cohérente avec le département extrait du NIR (positions 5-6). Le champ NIR source est configurable.</p>
+
+  <h3><code>alpha / codeApe</code></h3>
+  <p>Code APE/NAF français. Format : <code>XXXXZ</code> (ex : <code>6201Z</code>). Longueur défaut : <code>5</code>.</p>
+
+  <h3><code>alpha / iban</code></h3>
+  <p>IBAN français. Format : <code>FR76 XXXX XXXX XXXX XXXX XXXX XXX</code>. Longueur défaut : <code>27</code>.</p>
+
+  <h3><code>alpha / concat</code> — Concaténation</h3>
+  <p>Assemble champs existants et textes libres dans un ordre défini. L'éditeur dédié permet d'ajouter des champs ou des textes libres et de les réordonner via les boutons ↑ ↓.</p>
+  <pre><code class="language-json">"concatItems": [
+  { "type": "field", "fieldId": "abc123" },
+  { "type": "text",  "value": "_" },
+  { "type": "field", "fieldId": "def456" }
+]</code></pre>
+
+  <h2>🔢 Num — Champs numériques</h2>
+
+  <h3><code>num / none</code> — Entier libre</h3>
+  <p>Entier aléatoire ou incrémenté. Supporte padding (ex: <code>00001000</code>).</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Paramètre</th><th>Défaut</th></tr></thead>
+    <tbody>
+      <tr><td>Longueur</td><td><code>10</code></td></tr>
+      <tr><td>Incrément actif</td><td><code>false</code></td></tr>
+      <tr><td>Valeur de départ</td><td><code>1</code></td></tr>
+      <tr><td>Padding</td><td><code>none</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><code>num / nir</code> — NIR (Sécurité Sociale)</h3>
+  <p>15 chiffres structurés selon les règles françaises. Voir <a onclick="navigate('nir')">Cohérence NIR</a> pour les liaisons automatiques.</p>
+  <pre><code class="language-text">Position :  0   1-2  3-4  5-6   7-9   10-12  13-14
+Contenu :  Sexe Année Mois Dept Commune Ordre   Clé
+Exemple :   1    85   04   69   123     456     78</code></pre>
+
+  <h3><code>num / siret</code></h3>
+  <p>SIRET français à 14 chiffres (SIREN 9 chiffres + NIC 5 chiffres).</p>
+
+  <h3><code>num / codePostal</code> / <code>codeInsee</code></h3>
+  <p>Code postal ou INSEE à 5 chiffres. Filtrable par département.</p>
+
+  <h3><code>num / departement</code> / <code>departementNaissance</code> ⚡</h3>
+  <p>Département FR (01–95). <code>departementNaissance</code> extrait du NIR.</p>
+
+  <h3><code>num / compteurLignes</code></h3>
+  <p>Nombre total de lignes du fichier (en-tête + données × N + pied de page). Calculé avant la génération.</p>
+
+  <h2>📅 Date</h2>
+
+  <h3>Formats disponibles</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Format</th><th>Exemple</th><th>Longueur</th></tr></thead>
+    <tbody>
+      <tr><td><code>DD/MM/YYYY</code></td><td>15/04/1985</td><td>10</td></tr>
+      <tr><td><code>YYYY-MM-DD</code></td><td>1985-04-15</td><td>10</td></tr>
+      <tr><td><code>YYYYMMDD</code></td><td>19850415</td><td>8</td></tr>
+      <tr><td><code>DDMMYYYY</code></td><td>15041985</td><td>8</td></tr>
+      <tr><td><code>timestamp</code></td><td>482457600</td><td>~10</td></tr>
+      <tr><td><code>YYYYMMDDHHmmss</code></td><td>19850415120000</td><td>14</td></tr>
+      <tr><td><code>DD/MM/YYYY HH:mm:ss</code></td><td>15/04/1985 12:00:00</td><td>19</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><code>date / dateNaissance</code> ⚡</h3>
+  <p>Date cohérente avec l'année/mois du NIR. Tous les formats supportés. Le champ NIR source est configurable. Voir <a onclick="navigate('nir')">Cohérence NIR</a>.</p>
+
+  <h2>✅ Bool</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Sous-type</th><th>Valeur 1</th><th>Valeur 2</th><th>Long.</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>none</code></td><td colspan="2">Aléatoire parmi les valeurs du preset</td><td>3</td><td>Valeur par défaut configurable</td></tr>
+      <tr><td><code>ON</code></td><td>O</td><td>N</td><td>1</td><td>—</td></tr>
+      <tr><td><code>OUINON</code></td><td>OUI</td><td>NON</td><td>3</td><td>—</td></tr>
+      <tr><td><code>OKKO</code></td><td>OK</td><td>KO</td><td>2</td><td>—</td></tr>
+      <tr><td><code>BINAIRE</code></td><td>0</td><td>1</td><td>1</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout tip"><div class="callout-icon">💡</div><div>Pour une distribution pondérée (ex. 70% O / 30% N), utilisez les <a onclick="navigate('presets')">Presets</a>.</div></div>
+
+  <h2>💰 Decimal</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Paramètre</th><th>Valeurs</th><th>Défaut</th></tr></thead>
+    <tbody>
+      <tr><td>Séparateur décimal</td><td><code>.</code> · <code>,</code></td><td><code>.</code></td></tr>
+      <tr><td>Nombre de décimales</td><td>0–10</td><td><code>2</code></td></tr>
+      <tr><td>Padding</td><td><code>none</code> · <code>before</code> · <code>after</code> · <code>both</code></td><td><code>none</code></td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ═══════════════════ FIELD CONFIG ═══════════════════ -->
+<div class="page" id="page-field-config">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>référence</span><span class="sep">/</span><span>configuration-champ</span></div>
+  <h1>⚙️ Configuration d'un champ</h1>
+  <p class="lead">Référence complète de tous les paramètres JSON d'un champ, avec leurs valeurs par défaut.</p>
+
+  <h2>Paramètres communs (tous types)</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Paramètre</th><th>Clé JSON</th><th>Type</th><th>Défaut</th></tr></thead>
+    <tbody>
+      <tr><td>Nom</td><td><code>name</code></td><td>string</td><td><code>""</code></td></tr>
+      <tr><td>Catégorie</td><td><code>category</code></td><td>string</td><td><code>""</code></td></tr>
+      <tr><td>Type de base</td><td><code>type</code></td><td>enum</td><td><code>"alpha"</code></td></tr>
+      <tr><td>Sous-type</td><td><code>subType</code></td><td>string</td><td><code>"none"</code></td></tr>
+      <tr><td>Longueur</td><td><code>length</code></td><td>int</td><td><code>10</code></td></tr>
+      <tr><td>Inclure dans la sortie</td><td><code>includeInOutput</code></td><td>bool</td><td><code>true</code></td></tr>
+      <tr><td>Commentaire</td><td><code>comment</code></td><td>string</td><td><code>""</code></td></tr>
+      <tr><td>ID (auto-généré)</td><td><code>id</code></td><td>string</td><td>—</td></tr>
+      <tr><td>Lien de cohérence</td><td><code>linkedFieldId</code></td><td>string</td><td><code>""</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Exemple JSON complet</h2>
+  <pre><code class="language-jsonc">{
+  "id": "abc123",
+  "name": "Code client",
+  "category": "Identification",
+  "type": "num",
+  "subType": "none",
+  "length": 8,
+  "includeInOutput": true,
+
+  // Padding (alpha/none, num/none, decimal)
+  "padding": "before",
+  "paddingChar": "0",
+
+  // Valeur fixe / valeur par défaut
+  "defaultValue": "",
+
+  // Incrément (num/none uniquement)
+  "increment": true,
+  "incrementStart": 1000,
+
+  // Date
+  "format": "DD/MM/YYYY",
+  "todayDate": false,
+  "dateMinEnabled": true,
+  "dateMinToday": false,
+  "dateMinExclusive": false,
+  "dateMin": "01/01/2020",
+  "dateMaxEnabled": true,
+  "dateMaxToday": true,
+  "dateMaxExclusive": false,
+  "dateMax": "",
+
+  // Concaténation (alpha/concat)
+  "concatItems": [
+    { "type": "field", "fieldId": "abc123" },
+    { "type": "text",  "value": "_" }
+  ],
+
+  // Filtre géographique
+  "codePostalFilter": "31",
+
+  // Lien de cohérence (champs dépendants : ville, adresseComplete, civiliteNir, prenomNir,
+  //                    lieuNaissance, dateNaissance, departementNaissance)
+  // "" = auto (lie au premier champ source trouvé dans la ligne)
+  // "__none__" = indépendant (génère sans tenir compte des autres champs de la ligne)
+  // "<id>" = lié au champ dont l'ID est <id>
+  "linkedFieldId": "",
+
+  // Civilité
+  "civiliteCategorie": "classiques",
+  "civiliteOutput": "code",
+
+  // Décimal
+  "decimalSeparator": ",",
+  "decimalPlaces": 2,
+
+  "comment": "Identifiant numérique unique"
+}</code></pre>
+
+  <h2>Tableau — Paramètres par type</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Paramètre</th><th>alpha/none</th><th>alpha/concat</th><th>alpha/civilite</th><th>num/none</th><th>num/nir</th><th>date</th><th>bool</th><th>decimal</th></tr></thead>
+    <tbody>
+      <tr><td>Longueur</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Padding</td><td>✅</td><td>—</td><td>—</td><td>✅</td><td>—</td><td>—</td><td>—</td><td>✅</td></tr>
+      <tr><td>Valeur par défaut</td><td>✅</td><td>—</td><td>—</td><td>✅</td><td>—</td><td>✅</td><td>✅</td><td>—</td></tr>
+      <tr><td>Incrément</td><td>—</td><td>—</td><td>—</td><td>✅</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Format / Bornes date</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✅</td><td>—</td><td>—</td></tr>
+      <tr><td>Config civilité</td><td>—</td><td>—</td><td>✅</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Filtre département</td><td>ville</td><td>—</td><td>—</td><td>postal/insee</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Concat items</td><td>—</td><td>✅</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Décimales</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✅</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ═══════════════════ NIR ═══════════════════ -->
+<div class="page" id="page-nir">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>référence</span><span class="sep">/</span><span>cohérence-nir</span></div>
+  <h1>🔗 Cohérence NIR</h1>
+  <p class="lead">Data Flow Builder gère automatiquement la cohérence entre un champ NIR et les champs qui en dépendent sur la même ligne.</p>
+
+  <h2>Principe</h2>
+  <pre><code class="language-text">num/nir ──► alpha/prenomNir          (prénom selon le sexe)
+        ├── alpha/civiliteNir        (civilité selon le sexe)
+        ├── date/dateNaissance       (date extraite de l'année/mois)
+        ├── num/departementNaissance (département extrait)
+        └── alpha/lieuNaissance      (commune du département)</code></pre>
+
+  <h2>Structure du NIR</h2>
+  <pre><code class="language-text">185046912345678
+│ ││ ││ ││ ││  │
+│ ││ ││ ││ │└──┘── Clé  (positions 13-14)
+│ ││ ││ ││ └─────── Ordre (positions 10-12)
+│ ││ ││ │└───────── Commune (positions 7-9)
+│ ││ ││ └─────────── Département (positions 5-6) → 69 = Rhône
+│ ││ │└───────────── Mois de naissance (positions 3-4) → 04 = Avril
+│ │└─────────────── Année (positions 1-2) → 85 → 1985
+│ └───────────────── Sexe (position 0) → 1 = Masculin
+└─────────────────── Exemple complet</code></pre>
+
+  <h2>Activation</h2>
+  <p>Il suffit d'ajouter les deux types de champs dans la <strong>même ligne de données</strong> :</p>
+  <ol>
+    <li>Ajouter un champ <code>num / nir</code></li>
+    <li>Ajouter un ou plusieurs champs liés (<code>prenomNir</code>, <code>civiliteNir</code>, <code>dateNaissance</code>…)</li>
+    <li>Le moteur de dépendances gère l'ordre automatiquement</li>
+  </ol>
+
+  <h2>Comportement par champ lié</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Champ</th><th>Logique</th></tr></thead>
+    <tbody>
+      <tr><td><code>alpha/prenomNir</code></td><td>NIR <code>1…</code> → prénom masculin FR, NIR <code>2…</code> → prénom féminin FR</td></tr>
+      <tr><td><code>alpha/civiliteNir</code></td><td>NIR <code>1…</code> → M/Monsieur, NIR <code>2…</code> → Mme/Madame</td></tr>
+      <tr><td><code>date/dateNaissance</code></td><td>Année et mois extraits du NIR, jour aléatoire 1–28</td></tr>
+      <tr><td><code>num/departementNaissance</code></td><td>Positions 5-6 du NIR directement</td></tr>
+      <tr><td><code>alpha/lieuNaissance</code></td><td>Commune aléatoire du département extrait</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Exemple de ligne cohérente</h2>
+  <pre><code class="language-text">NIR              : 185046912345678
+Civilité NIR     : M
+Prénom NIR       : Jean
+Date naissance   : 15/04/1985  (mois=04, année=85→1985, jour aléatoire)
+Département naiss: 69</code></pre>
+  <div class="callout tip"><div class="callout-icon">✅</div><div>Toutes ces valeurs sont <strong>mutuellement cohérentes</strong> : sexe masculin, né en avril 1985 dans le Rhône.</div></div>
+
+  <h2>Cas particuliers</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Situation</th><th>Comportement</th></tr></thead>
+    <tbody>
+      <tr><td>Pas de champ <code>nir</code> dans la ligne</td><td>Valeurs aléatoires non cohérentes</td></tr>
+      <tr><td>Plusieurs champs <code>nir</code> dans la ligne</td><td>Par défaut, le premier dans l'ordre de génération est utilisé. Configurable via le lien de cohérence.</td></tr>
+      <tr><td>NIR invalide</td><td>Fallback sur génération aléatoire</td></tr>
+      <tr><td>API indisponible (<code>lieuNaissance</code>)</td><td>Cache local ou 10 villes de fallback</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Contrôle des liaisons</h2>
+  <p>Les champs dépendants (<code>prenomNir</code>, <code>civiliteNir</code>, <code>dateNaissance</code>, <code>departementNaissance</code>, <code>lieuNaissance</code>) disposent d'un paramètre <strong>Lien de cohérence</strong> qui contrôle le comportement de liaison.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Valeur <code>linkedFieldId</code></th><th>Comportement</th><th>Cas d'usage</th></tr></thead>
+    <tbody>
+      <tr><td><code>""</code> (auto)</td><td>Se lie au premier champ <code>nir</code> trouvé dans la ligne (ordre de génération)</td><td>Cas standard, un seul NIR dans la ligne</td></tr>
+      <tr><td><code>"__none__"</code> (indépendant)</td><td>Génère sans consulter aucun champ NIR</td><td>Champ à générer indépendamment de tout NIR</td></tr>
+      <tr><td><code>"&lt;id&gt;"</code> (lié)</td><td>Se lie explicitement au champ dont l'ID est <code>&lt;id&gt;</code></td><td>Plusieurs NIR dans la ligne — chaque dépendant pointe son propre NIR</td></tr>
+    </tbody>
+  </table></div>
+  <pre><code class="language-jsonc">// Exemple : 2 NIR indépendants sur la même ligne
+// Champ NIR 1 (id: "nir-titulaire")
+{ "type": "num", "subType": "nir", "id": "nir-titulaire" }
+
+// Prénom lié au NIR 1
+{ "type": "alpha", "subType": "prenomNir", "linkedFieldId": "nir-titulaire" }
+
+// Champ NIR 2 (id: "nir-conjoint")
+{ "type": "num", "subType": "nir", "id": "nir-conjoint" }
+
+// Prénom lié au NIR 2 — indépendant du premier
+{ "type": "alpha", "subType": "prenomNir", "linkedFieldId": "nir-conjoint" }</code></pre>
+  <div class="callout info"><div class="callout-icon">ℹ️</div><div>La même logique s'applique aux champs géographiques : un champ <code>ville</code> peut être lié à un <code>codePostal</code> spécifique de la ligne via <code>linkedFieldId</code>.</div></div>
+</div>
+
+<!-- ═══════════════════ DATES ═══════════════════ -->
+<div class="page" id="page-dates">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>référence</span><span class="sep">/</span><span>dates</span></div>
+  <h1>🗓️ Champs Date</h1>
+  <p class="lead">Les champs de type <code>date</code> offrent un contrôle fin sur les formats de sortie, les bornes et le comportement dynamique.</p>
+
+  <h2>Formats de sortie</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Clé</th><th>Exemple</th><th>Longueur</th><th>Placeholder saisie</th></tr></thead>
+    <tbody>
+      <tr><td><code>DD/MM/YYYY</code></td><td>15/04/1985</td><td>10</td><td>JJ/MM/AAAA</td></tr>
+      <tr><td><code>YYYY-MM-DD</code></td><td>1985-04-15</td><td>10</td><td>AAAA-MM-JJ</td></tr>
+      <tr><td><code>DD-MM-YYYY</code></td><td>15-04-1985</td><td>10</td><td>JJ-MM-AAAA</td></tr>
+      <tr><td><code>MM/DD/YYYY</code></td><td>04/15/1985</td><td>10</td><td>MM/JJ/AAAA</td></tr>
+      <tr><td><code>YYYYMMDD</code></td><td>19850415</td><td>8</td><td>AAAAMMJJ</td></tr>
+      <tr><td><code>DDMMYYYY</code></td><td>15041985</td><td>8</td><td>JJMMAAAA</td></tr>
+      <tr><td><code>timestamp</code></td><td>482457600</td><td>~10</td><td>—</td></tr>
+      <tr><td><code>YYYYMMDDHHmmss</code></td><td>19850415120000</td><td>14</td><td>AAAAMMJJHHmmss</td></tr>
+      <tr><td><code>DD/MM/YYYY HH:mm:ss</code></td><td>15/04/1985 12:00:00</td><td>19</td><td>JJ/MM/AAAA HH:mm:ss</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Paramètres de bornes</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Paramètre</th><th>Clé JSON</th><th>Défaut</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Date du jour</td><td><code>todayDate</code></td><td><code>false</code></td><td>Génère toujours la date d'exécution (ignore les bornes)</td></tr>
+      <tr><td>Borne min activée</td><td><code>dateMinEnabled</code></td><td><code>false</code></td><td>Active la contrainte minimale</td></tr>
+      <tr><td>Borne min = aujourd'hui</td><td><code>dateMinToday</code></td><td><code>false</code></td><td>Borne dynamique = date du jour</td></tr>
+      <tr><td>Borne min exclusive</td><td><code>dateMinExclusive</code></td><td><code>false</code></td><td><code>></code> au lieu de <code>>=</code></td></tr>
+      <tr><td>Borne min (valeur)</td><td><code>dateMin</code></td><td><code>""</code></td><td>Date fixe dans le format choisi</td></tr>
+      <tr><td>Borne max activée</td><td><code>dateMaxEnabled</code></td><td><code>false</code></td><td>Active la contrainte maximale</td></tr>
+      <tr><td>Borne max = aujourd'hui</td><td><code>dateMaxToday</code></td><td><code>false</code></td><td>Borne dynamique = date du jour</td></tr>
+      <tr><td>Borne max exclusive</td><td><code>dateMaxExclusive</code></td><td><code>false</code></td><td><code>&lt;</code> au lieu de <code>&lt;=</code></td></tr>
+      <tr><td>Borne max (valeur)</td><td><code>dateMax</code></td><td><code>""</code></td><td>Date fixe dans le format choisi</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Exemples de configuration</h2>
+  <h3>Dates sur les 12 derniers mois</h3>
+  <pre><code class="language-jsonc">{
+  "dateMinEnabled": true,
+  "dateMin": "01/04/2024",   // il y a 12 mois
+  "dateMaxEnabled": true,
+  "dateMaxToday": true       // borne max = aujourd'hui
+}</code></pre>
+
+  <h3>Dates dans le futur (strictement)</h3>
+  <pre><code class="language-jsonc">{
+  "dateMinEnabled": true,
+  "dateMinToday": true,
+  "dateMinExclusive": true   // strictement > aujourd'hui
+}</code></pre>
+
+  <h3>Date fixe (toujours identique)</h3>
+  <pre><code class="language-jsonc">{
+  "todayDate": false,
+  "defaultValue": "01/01/2024"
+}</code></pre>
+
+  <h2>Date de naissance NIR</h2>
+  <p>Le sous-type <code>dateNaissance</code> extrait l'année et le mois du NIR de la même ligne :</p>
+  <ul>
+    <li><strong>Année</strong> : positions 1-2 du NIR. Valeur ≥ 30 → <code>19XX</code>, valeur &lt; 30 → <code>20XX</code></li>
+    <li><strong>Mois</strong> : positions 3-4 du NIR (01–12)</li>
+    <li><strong>Jour</strong> : aléatoire entre 1 et 28 (garantit la validité pour tous les mois)</li>
+  </ul>
+</div>
+
+<!-- ═══════════════════ PRESETS ═══════════════════ -->
+<div class="page" id="page-presets">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>référence</span><span class="sep">/</span><span>presets</span></div>
+  <h1>🔢 Presets de valeurs</h1>
+  <p class="lead">Les presets permettent de définir une liste de valeurs prédéfinies pour un champ. Le générateur pioche aléatoirement dans cette liste.</p>
+
+  <h2>Modes de fonctionnement</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Mode</th><th>Comportement</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Valeurs aléatoires</strong> (défaut)</td><td>Le preset est ignoré, génération normale</td></tr>
+      <tr><td><strong>Valeurs prédéfinies</strong></td><td>Tirage aléatoire uniforme dans la liste</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Accès</h2>
+  <p>Dans l'éditeur de champ, cliquez sur le bouton <strong>"Presets"</strong> (🎲). Une fenêtre de dialogue s'ouvre.</p>
+
+  <h2>Distribution pondérée</h2>
+  <p>Chaque entrée a une probabilité égale d'être tirée. Pour simuler une distribution pondérée, <strong>dupliquez les entrées</strong> :</p>
+  <pre><code class="language-text">Cible : 75% ACTIF, 25% INACTIF
+→ Ajouter :
+  ACTIF    (entrée 1)
+  ACTIF    (entrée 2)
+  ACTIF    (entrée 3)
+  INACTIF  (entrée 4)</code></pre>
+
+  <h2>Cas d'usage typiques</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Champ</th><th>Valeurs de preset utiles</th></tr></thead>
+    <tbody>
+      <tr><td>Type d'enregistrement</td><td><code>01</code>, <code>02</code>, <code>99</code></td></tr>
+      <tr><td>Statut</td><td><code>ACTIF</code>, <code>INACTIF</code>, <code>EN_ATTENTE</code></td></tr>
+      <tr><td>Code pays</td><td><code>FR</code>, <code>BE</code>, <code>CH</code>, <code>LU</code></td></tr>
+      <tr><td>Code devise</td><td><code>EUR</code>, <code>USD</code>, <code>GBP</code></td></tr>
+      <tr><td>Centre de coût</td><td><code>CC001</code>, <code>CC002</code>, <code>CC003</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Format JSON</h2>
+  <pre><code class="language-json">"presets": {
+  "field-id-abc123": {
+    "useRandom": false,
+    "values": [
+      { "value": "ACTIF",    "comment": "Salarié actif",    "isDefault": true  },
+      { "value": "INACTIF",  "comment": "Salarié inactif",  "isDefault": false },
+      { "value": "SUSPENDU", "comment": "Compte suspendu",  "isDefault": false }
+    ]
+  }
+}</code></pre>
+  <div class="callout info"><div class="callout-icon">ℹ️</div><div>Les presets sont sauvegardés avec le flux et inclus dans l'export JSON.</div></div>
+</div>
+
+<!-- ═══════════════════ FOLDERS ═══════════════════ -->
+<div class="page" id="page-folders">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>fonctionnalités</span><span class="sep">/</span><span>dossiers</span></div>
+  <h1>📁 Gestion des dossiers</h1>
+  <p class="lead">Organisez vos flux en arborescence de dossiers (profondeur illimitée) depuis la barre latérale gauche.</p>
+
+  <h2>Structure de l'arbre</h2>
+  <pre><code class="language-text">📁 Tous les flux       ← Vue globale
+📥 Sans dossier        ← Flux non classés
+📁 RH
+   📁 Paie
+   📁 Formation
+📁 Finance
+📁 Clients</code></pre>
+
+  <h2>Actions disponibles</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Action</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Nouveau dossier</strong></td><td>Créé à la racine ou sous un dossier existant</td></tr>
+      <tr><td><strong>Renommer</strong></td><td>Modifier le nom du dossier courant</td></tr>
+      <tr><td><strong>Sous-dossier</strong></td><td>Créer un enfant du dossier courant</td></tr>
+      <tr><td><strong>Supprimer</strong></td><td>Supprime le dossier + sous-dossiers ; les flux vont à la racine</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Déplacer un flux</h2>
+  <p><strong>Menu déroulant</strong> : sur la carte flux, ouvrez "Déplacer…" et sélectionnez le dossier cible.</p>
+  <p><strong>Drag & drop</strong> : maintenez le clic sur l'icône ⠿ et déposez dans la barre latérale.</p>
+
+  <div class="callout warning"><div class="callout-icon">⚠️</div><div>La suppression d'un dossier est <strong>irréversible</strong>. Les flux contenus sont déplacés à la racine, pas supprimés.</div></div>
+
+  <h2>Format de stockage JSON</h2>
+  <pre><code class="language-json">[
+  {
+    "id": "1712345678.123",
+    "name": "RH",
+    "parentId": null,
+    "created": "2024-04-05 10:00:00"
+  },
+  {
+    "id": "1712345699.456",
+    "name": "Paie",
+    "parentId": "1712345678.123",
+    "created": "2024-04-05 10:05:00"
+  }
+]</code></pre>
+</div>
+
+<!-- ═══════════════════ GEO ═══════════════════ -->
+<div class="page" id="page-geo">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>fonctionnalités</span><span class="sep">/</span><span>api-géographique</span></div>
+  <h1>🌍 API Géographique</h1>
+  <p class="lead">Les communes françaises sont chargées depuis l'API officielle du gouvernement, avec cache local et fallback offline.</p>
+
+  <h2>Source</h2>
+  <pre><code class="language-text">https://geo.api.gouv.fr/communes</code></pre>
+  <p>API gratuite, sans authentification, maintenue par Etalab.</p>
+
+  <h2>Stratégie de chargement</h2>
+  <pre><code class="language-text">Premier lancement :  API gov ──► Cache JSON ──► Application
+Lancements suivants: Cache JSON ──────────────► Application
+API indisponible :   Fallback (10 villes) ─────► Application</code></pre>
+
+  <h2>Communes de fallback</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Commune</th><th>Département</th></tr></thead>
+    <tbody>
+      <tr><td>Paris</td><td>75</td></tr>
+      <tr><td>Marseille</td><td>13</td></tr>
+      <tr><td>Lyon</td><td>69</td></tr>
+      <tr><td>Toulouse</td><td>31</td></tr>
+      <tr><td>Nice</td><td>06</td></tr>
+      <tr><td>Nantes</td><td>44</td></tr>
+      <tr><td>Bordeaux</td><td>33</td></tr>
+      <tr><td>Lille</td><td>59</td></tr>
+      <tr><td>Rennes</td><td>35</td></tr>
+      <tr><td>Strasbourg</td><td>67</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Filtrage par code postal</h2>
+  <p>Le paramètre <code>codePostalFilter</code> filtre les codes postaux avec support des wildcards :</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Valeur</th><th>Effet</th></tr></thead>
+    <tbody>
+      <tr><td><code>*</code></td><td>Toutes les communes françaises (aucun filtre)</td></tr>
+      <tr><td><code>31*</code></td><td>Codes commençant par 31 → Haute-Garonne</td></tr>
+      <tr><td><code>75*</code></td><td>Codes commençant par 75 → Paris</td></tr>
+      <tr><td><code>97*</code></td><td>Codes commençant par 97 → DOM-TOM</td></tr>
+      <tr><td><code>*10*</code></td><td>Codes contenant 10</td></tr>
+      <tr><td><code>*25</code></td><td>Codes se terminant par 25</td></tr>
+      <tr><td><code>33000</code></td><td>Correspondance exacte (code postal précis)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout info"><div class="callout-icon">ℹ️</div><div>Le filtre s'applique sur les <strong>codes postaux</strong> (ex : <code>31*</code> pour la Haute-Garonne), pas sur les codes de département. La syntaxe supporte les wildcards <code>*</code> en préfixe, suffixe ou les deux.</div></div>
+
+  <h2>Cohérence ville / code postal</h2>
+  <p>Les champs <code>ville</code> et <code>adresseComplete</code> peuvent être liés à un champ <code>codePostal</code> de la même ligne pour garantir la cohérence entre les deux valeurs.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Valeur <code>linkedFieldId</code></th><th>Comportement</th></tr></thead>
+    <tbody>
+      <tr><td><code>""</code> (auto)</td><td>Se lie au premier <code>codePostal</code> de la ligne, puis utilise son filtre département propre</td></tr>
+      <tr><td><code>"__none__"</code> (indépendant)</td><td>Ignore les champs <code>codePostal</code> présents — utilise uniquement son propre filtre</td></tr>
+      <tr><td><code>"&lt;id&gt;"</code> (lié)</td><td>Se synchronise avec le code postal dont l'ID est <code>&lt;id&gt;</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warning"><div class="callout-icon">⚠️</div><div>Sans <code>linkedFieldId</code> explicite, si plusieurs champs <code>codePostal</code> coexistent dans la ligne avec des filtres différents, le dernier trouvé peut prendre le dessus. Préférez un lien explicite dans ce cas.</div></div>
+
+  <h2>Résolution de problèmes</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Problème</th><th>Solution</th></tr></thead>
+    <tbody>
+      <tr><td>Toujours les mêmes 10 villes</td><td>API indisponible au premier lancement — vérifier la connexion et supprimer le cache</td></tr>
+      <tr><td>Supprimer le cache</td><td>Effacer <code>{appdir}/data/communes_cache.json</code> et redémarrer</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ═══════════════════ IMPORT/EXPORT ═══════════════════ -->
+<div class="page" id="page-import-export">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>fonctionnalités</span><span class="sep">/</span><span>import-export</span></div>
+  <h1>📦 Import / Export JSON</h1>
+  <p class="lead">Les flux peuvent être exportés en JSON et partagés entre utilisateurs ou machines. Le fichier contient la définition complète, pas les données générées.</p>
+
+  <h2>Exporter</h2>
+  <p>Depuis la vue d'accueil : icône <strong>⬇</strong> sur la carte du flux → choisir l'emplacement.</p>
+  <div class="callout info"><div class="callout-icon">ℹ️</div><div>Le bouton <strong>Exporter</strong> dans l'éditeur génère le fichier de <em>données</em> (CSV, etc.), pas la définition du flux.</div></div>
+
+  <h2>Importer</h2>
+  <p>Vue d'accueil → <strong>Importer</strong> → sélectionner un <code>.json</code>. Si vous êtes dans un dossier spécifique, le flux est automatiquement affecté à ce dossier.</p>
+
+  <h2>Format JSON complet</h2>
+  <pre><code class="language-jsonc">{
+  // Métadonnées
+  "id": "1712345678.123",
+  "name": "Flux salarié mensuel",
+  "description": "Fichier RH recette Paie",
+  "folderId": null,
+  "format": "csv",
+  "delimiter": ";",
+  "lineEnding": "CRLF",
+  "encoding": "UTF-8",
+  "hasHeader": true,
+  "numRows": 500,
+  "trailingDelimiter": false,
+
+  // En-tête
+  "headerFields": [ /* tableau de champs */ ],
+
+  // Lignes de données
+  "fields": [
+    {
+      "id": "line-001",
+      "name": "Ligne salarié",
+      "fields": [
+        {
+          "id": "fld-nir",
+          "name": "NIR",
+          "type": "num",
+          "subType": "nir",
+          "length": 15,
+          "includeInOutput": true,
+          "category": "Identité"
+        },
+        {
+          "id": "fld-prenom",
+          "name": "Prénom",
+          "type": "alpha",
+          "subType": "prenomNir",
+          "length": 30,
+          "includeInOutput": true,
+          "linkedFieldId": "fld-nir"  // lié explicitement au NIR ci-dessus
+        },
+        {
+          "id": "fld-statut",
+          "name": "Statut",
+          "type": "alpha",
+          "subType": "none",
+          "length": 10,
+          "defaultValue": "ACTIF",
+          "includeInOutput": true
+        }
+      ]
+    }
+  ],
+
+  // Pied de page
+  "footerFields": [ /* tableau de champs */ ],
+
+  // Presets
+  "presets": {
+    "fld-statut": {
+      "useRandom": false,
+      "values": [
+        { "value": "ACTIF",   "comment": "", "isDefault": true  },
+        { "value": "INACTIF", "comment": "", "isDefault": false }
+      ]
+    }
+  }
+}</code></pre>
+
+</div>
+
+<!-- ═══════════════════ CICD ═══════════════════ -->
+<div class="page" id="page-cicd">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>développement</span><span class="sep">/</span><span>ci-cd</span></div>
+  <h1>🔧 CI/CD & Build</h1>
+  <p class="lead">Le projet utilise GitHub Actions pour l'intégration continue, la compilation multi-plateforme et la publication des releases.</p>
+
+  <h2>Workflows GitHub Actions</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Workflow</th><th>Déclencheur</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>ci.yml</code></td><td>Push / PR</td><td>Tests, lint, coverage</td></tr>
+      <tr><td><code>build.yml</code></td><td>Release</td><td>Compilation Flet multi-OS</td></tr>
+      <tr><td><code>release.yml</code></td><td>Tag <code>v*</code></td><td>Publication GitHub Release</td></tr>
+      <tr><td><code>dependabot.yml</code></td><td>Hebdomadaire</td><td>Mises à jour de dépendances</td></tr>
+      <tr><td><code>dependency-review.yml</code></td><td>PR</td><td>Audit CVE des dépendances</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Build multi-plateforme</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Plateforme</th><th>Runner</th><th>Artefact</th></tr></thead>
+    <tbody>
+      <tr><td>Windows 64-bit</td><td><code>windows-latest</code></td><td><code>DataFlowBuilder-windows</code></td></tr>
+      <tr><td>macOS Apple Silicon</td><td><code>macos-latest</code></td><td><code>DataFlowBuilder-macos</code></td></tr>
+      <tr><td>Linux 64-bit</td><td><code>ubuntu-latest</code></td><td><code>DataFlowBuilder-linux</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Outils qualité</h2>
+  <h3>Ruff (Linter + Formatter)</h3>
+  <pre><code class="language-bash">ruff check .          # Vérifier
+ruff check --fix .    # Corriger auto
+ruff format .         # Formater</code></pre>
+
+  <h3>Bandit (Sécurité)</h3>
+  <pre><code class="language-bash">bandit -r src/</code></pre>
+
+  <h3>Tests & Coverage</h3>
+  <pre><code class="language-bash">pytest --cov=src --cov-report=term-missing</code></pre>
+
+  <h2>Build local</h2>
+  <pre><code class="language-bash">pip install -e ".[dev]"
+flet build windows/linux ou macos
+./dist/DataFlowBuilder</code></pre>
+
+  <h2>Conventional Commits</h2>
+  <pre><code class="language-text">feat: ajouter le type de champ SIRET
+fix: corriger le padding "both" pour longueurs impaires
+docs: mettre à jour la documentation NIR
+chore: bumper Faker à 25.0.0</code></pre>
+</div>
+
+<!-- ═══════════════════ FAQ ═══════════════════ -->
+<div class="page" id="page-faq">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>faq</span></div>
+  <h1>❓ FAQ</h1>
+  <p class="lead">Réponses aux questions les plus fréquentes.</p>
+
+  <h2>Installation & Démarrage</h2>
+
+  <h3>L'application ne démarre pas après <code>python main.py</code></h3>
+  <pre><code class="language-bash">python --version   # Doit afficher 3.11+
+pip install -e .   # Réinstaller les dépendances</code></pre>
+
+  <h3>Où sont stockées mes données ?</h3>
+  <p><strong>Windows :</strong> <code>%TEMP%\DataFlowBuilder\</code> — <strong>Linux/macOS :</strong> <code>/tmp/DataFlowBuilder/</code></p>
+
+  <h2>Flux et dossiers</h2>
+
+  <h3>Comment dupliquer un flux ?</h3>
+  <p>Exportez-le en JSON (⬇ sur la carte), puis ré-importez-le. Un nouvel ID lui est attribué automatiquement.</p>
+
+  <h3>J'ai supprimé un flux par erreur. Récupérable ?</h3>
+  <div class="callout danger"><div class="callout-icon">❌</div><div>Non, la suppression est définitive. Exportez régulièrement vos flux importants en JSON.</div></div>
+
+  <h3>Si je supprime un dossier, mes flux sont-ils supprimés ?</h3>
+  <p>Non. Les flux sont déplacés à la racine. Seul le dossier est supprimé.</p>
+
+  <h2>Champs et types</h2>
+
+  <h3>Différence entre <code>civilite</code> et <code>civiliteNir</code> ?</h3>
+  <p><code>civilite</code> : aléatoire dans la catégorie choisie. <code>civiliteNir</code> : cohérente avec le genre du NIR de la même ligne.</p>
+
+  <h3>J'ai deux champs NIR (ou deux champs code postal) dans la même ligne — comment contrôler les liaisons ?</h3>
+  <p>Les champs dépendants (<code>prenomNir</code>, <code>civiliteNir</code>, <code>ville</code>…) exposent un paramètre <strong>Lien de cohérence</strong> dans leur panneau d'édition. Trois modes sont disponibles :</p>
+  <ul>
+    <li><strong>Auto</strong> : se lie au premier champ source trouvé dans la ligne (comportement par défaut)</li>
+    <li><strong>Indépendant</strong> : génère la valeur sans tenir compte des autres champs de la ligne</li>
+    <li><strong>→ Nom du champ</strong> : lié explicitement à un champ source précis</li>
+  </ul>
+  <p>Voir <a onclick="navigate('nir')">Cohérence NIR</a> pour les détails.</p>
+
+  <h3>Comment générer un entier auto-incrémenté démarrant à 1000 ?</h3>
+  <ol>
+    <li>Type : <code>num</code>, sous-type : <code>none</code></li>
+    <li>Cochez <strong>"Incrément"</strong></li>
+    <li>Valeur de départ : <code>1000</code></li>
+    <li>Longueur : <code>8</code>, padding : <code>before</code>, char : <code>0</code> → <code>00001000</code></li>
+  </ol>
+
+  <h3>Comment forcer une valeur fixe ?</h3>
+  <p>Type <code>alpha/none</code>, renseignez la <strong>valeur par défaut</strong>. Toujours retournée sauf preset actif.</p>
+
+  <h3>Comment avoir 70% de "ACTIF" et 30% de "INACTIF" ?</h3>
+  <p>Presets : activez "Valeurs prédéfinies", ajoutez <code>ACTIF</code> ×7 et <code>INACTIF</code> ×3.</p>
+
+  <h2>Données géographiques</h2>
+
+  <h3>L'application génère toujours les mêmes 10 villes</h3>
+  <p>L'API n'a pas été contactée au premier lancement. Vérifiez la connexion internet, supprimez <code>communes_cache.json</code> et redémarrez.</p>
+
+  <h2>Génération et export</h2>
+
+  <h3>Différence entre "Aperçu" et "Exporter" ?</h3>
+  <p><strong>Aperçu</strong> : génère quelques lignes dans l'interface (sans créer de fichier). <strong>Exporter</strong> : génère le fichier complet sur disque.</p>
+
+  <h3>Générer un fichier positionnel (largeur fixe)</h3>
+  <ol>
+    <li>Format : <code>fixed</code></li>
+    <li>Chaque champ avec sa longueur exacte</li>
+    <li>Champs texte : padding <code>after</code>, char espace</li>
+    <li>Champs numériques : padding <code>before</code>, char <code>0</code></li>
+  </ol>
+
+  <h2>Développement</h2>
+
+  <h3>Comment ajouter un nouveau type de champ ?</h3>
+  <ol>
+    <li>Ajouter l'entrée dans <code>FIELD_SUBTYPES</code> dans <code>field_types.py</code></li>
+    <li>Configurer <code>SUBTYPE_CONFIG</code> (extra_fields, defaults)</li>
+    <li>Implémenter la logique dans <code>data_generator.py</code></li>
+    <li>Ajouter les tests dans <code>tests/test_data_generator.py</code></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════ COMPLIANCE ═══════════════════ -->
+<div class="page" id="page-compliance">
+  <div class="breadcrumb"><span>docs</span><span class="sep">/</span><span>fonctionnalités</span><span class="sep">/</span><span>conformité</span></div>
+  <h1>✅ Vérification de conformité</h1>
+  <p class="lead">Contrôlez qu'un fichier de données réel respecte exactement le mapping d'un flux — encodage, délimiteur, nombre de champs, longueurs, types, formats et cohérence des sous-types.</p>
+
+  <h2>Principe</h2>
+  <p>La vérification de conformité compare un fichier existant (CSV, positionnel, JSON ou XML) au flux actuellement ouvert dans l'éditeur. Elle produit un <strong>rapport détaillé</strong> listant chaque écart, classé par sévérité.</p>
+  <div class="callout info"><div class="callout-icon">ℹ️</div><div>Pour les formats <strong>JSON</strong> et <strong>XML</strong>, seuls la lisibilité structurelle et l'encodage sont vérifiés. Les contrôles de délimiteur et de champs s'appliquent uniquement aux formats <strong>CSV</strong> et <strong>positionnel</strong>.</div></div>
+
+  <h2>Accéder au vérificateur</h2>
+  <ol>
+    <li>Ouvrez un flux dans l'éditeur.</li>
+    <li>Cliquez sur le bouton <strong>Vérifier la conformité</strong> (icône <code>✅</code>) dans la barre d'actions.</li>
+    <li>Le dialogue de conformité s'ouvre par-dessus l'éditeur.</li>
+  </ol>
+
+  <h2>Utilisation du dialogue</h2>
+  <ol>
+    <li>Cliquez <strong>Parcourir…</strong> pour sélectionner le fichier à analyser.</li>
+    <li>Cliquez <strong>Lancer l'analyse</strong> — un indicateur de progression s'affiche pendant l'analyse.</li>
+    <li>Les résultats apparaissent groupés par sévérité, repliables/dépliables.</li>
+    <li>Utilisez les <strong>filtres</strong> (Erreurs / Avertissements / Infos) pour cibler un type d'écart.</li>
+    <li>Cliquez <strong>Exporter le rapport</strong> pour sauvegarder un compte-rendu texte (<code>.txt</code>).</li>
+  </ol>
+
+  <h2>Niveaux de sévérité</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Niveau</th><th>Icône</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-red">error</span></td><td>❌</td><td>Écart bloquant — le fichier ne respecte pas le mapping (encodage incorrect, type invalide, format de date non conforme…)</td></tr>
+      <tr><td><span class="badge badge-amber">warning</span></td><td>⚠️</td><td>Anomalie probable — le fichier est lisible mais un champ présente un format suspect (SIRET avec clé Luhn invalide, numéro de téléphone mal formé…)</td></tr>
+      <tr><td><span class="badge badge-blue">info</span></td><td>ℹ️</td><td>Contrôle réussi — confirmation qu'un point structurel est conforme (encodage OK, fins de ligne OK…)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Le rapport est marqué <strong>CONFORME</strong> (✅) uniquement si aucune erreur n'est détectée. Les avertissements n'empêchent pas la conformité.</p>
+
+  <h2>Contrôles effectués</h2>
+
+  <h3>1. Encodage</h3>
+  <p>Le fichier est décodé selon l'encodage déclaré dans le flux. Si ce décodage échoue, l'outil tente automatiquement <code>utf-8-sig</code>, <code>iso-8859-1</code>, <code>windows-1252</code> et <code>utf-16</code>, puis signale l'encodage détecté en erreur.</p>
+
+  <h3>2. Structure (JSON / XML)</h3>
+  <p>Pour les formats <code>json</code> et <code>xml</code>, le contenu est parsé — toute erreur de syntaxe est reportée en erreur.</p>
+
+  <h3>3. Fins de ligne</h3>
+  <p>Comparaison du saut de ligne observé (<code>CRLF</code>, <code>LF</code>, <code>CR</code> ou mixte) avec la valeur déclarée dans le flux. Un écart génère un avertissement.</p>
+
+  <h3>4. Délimiteur</h3>
+  <p>Présence du caractère délimiteur déclaré dans au moins une ligne du fichier. L'absence génère une erreur.</p>
+
+  <h3>5. En-tête et pied de page</h3>
+  <p>Vérification de la cohérence entre la présence d'en-tête / pied de page déclarée dans le flux et le contenu effectif du fichier (nombre de colonnes de la première / dernière ligne).</p>
+
+  <h3>6. Nombre de champs par ligne</h3>
+  <p>Chaque ligne de données est découpée selon le délimiteur et le nombre de colonnes est comparé au nombre de champs <code>includeInOutput</code> déclarés. Un écart génère une erreur.</p>
+
+  <h3>7. Longueur des champs</h3>
+  <p>La valeur de chaque colonne est comparée à la longueur maximale déclarée dans le mapping. Un dépassement génère une erreur.</p>
+
+  <h3>8. Cohérence de type</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Type déclaré</th><th>Contrôle</th></tr></thead>
+    <tbody>
+      <tr><td><code>num</code></td><td>La valeur ne doit contenir que des chiffres (hors espaces).</td></tr>
+      <tr><td><code>decimal</code></td><td>La valeur doit être convertible en nombre flottant avec le séparateur décimal configuré (<code>.</code> ou <code>,</code>).</td></tr>
+      <tr><td><code>bool</code></td><td>La valeur doit appartenir à l'ensemble attendu selon le sous-type (<code>O/N</code>, <code>OUI/NON</code>, <code>OK/KO</code>, <code>0/1</code>).</td></tr>
+      <tr><td><code>date</code></td><td>La valeur doit correspondre exactement au format de date déclaré (ex. <code>DD/MM/YYYY</code>).</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>9. Cohérence du sous-type</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Sous-type</th><th>Validation</th><th>Sévérité</th></tr></thead>
+    <tbody>
+      <tr><td><code>email</code></td><td>Regex <code>x@y.z</code></td><td><span class="badge badge-amber">warning</span></td></tr>
+      <tr><td><code>siret</code></td><td>14 chiffres + clé de contrôle Luhn</td><td><span class="badge badge-amber">warning</span></td></tr>
+      <tr><td><code>nir</code></td><td>15 chiffres exacts</td><td><span class="badge badge-amber">warning</span></td></tr>
+      <tr><td><code>iban</code></td><td>Format <code>CC99…</code> (pays 2 lettres + 2 chiffres + alphanumérique)</td><td><span class="badge badge-amber">warning</span></td></tr>
+      <tr><td><code>codeApe</code></td><td>4 chiffres + 1 lettre majuscule (ex. <code>6201Z</code>)</td><td><span class="badge badge-amber">warning</span></td></tr>
+      <tr><td><code>codePostal</code></td><td>Exactement 5 chiffres</td><td><span class="badge badge-amber">warning</span></td></tr>
+      <tr><td><code>codeInsee</code></td><td>Exactement 5 chiffres</td><td><span class="badge badge-amber">warning</span></td></tr>
+      <tr><td><code>phone</code></td><td>Numéro FR national (<code>0X…</code> ou <code>+33…</code>)</td><td><span class="badge badge-amber">warning</span></td></tr>
+      <tr><td><code>phonePlus33</code></td><td>Numéro FR international (<code>+33…</code>)</td><td><span class="badge badge-amber">warning</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout tip"><div class="callout-icon">💡</div><div>Les contrôles de sous-type génèrent des <strong>avertissements</strong> (et non des erreurs) car ils peuvent produire des faux positifs — par exemple, un SIRET d'entreprise fictif peut avoir une clé Luhn invalide par construction.</div></div>
+
+  <h2>Limite d'analyse</h2>
+  <p>Pour des raisons de performance, le détail des contrôles par champ (longueur, type, sous-type) est appliqué aux <strong>1 000 premières lignes de données</strong> au maximum. Les contrôles globaux (encodage, délimiteur, fins de ligne) portent toujours sur la totalité du fichier.</p>
+
+  <h2>Rapport exporté</h2>
+  <p>Le bouton <strong>Exporter le rapport</strong> sauvegarde un fichier <code>conformite_&lt;nom_du_flux&gt;.txt</code> contenant :</p>
+  <ul>
+    <li>En-tête : nom du flux, chemin du fichier, date d'analyse.</li>
+    <li>Résumé technique : résultat de chaque contrôle global sur une ligne.</li>
+    <li>Bilan : verdict (CONFORME / NON CONFORME), compteurs erreurs / avertissements / infos, durée, nombre de lignes.</li>
+    <li>Détail des écarts : groupés par sévérité, avec localisation (ligne, champ), catégorie, valeur attendue et valeur observée.</li>
+  </ul>
+  <pre><code class="language-text">════════════════════════════════════════════════════════════════════════
+  RAPPORT DE CONFORMITÉ – DATA FLOW BUILDER
+════════════════════════════════════════════════════════════════════════
+  Flux      : Flux salarié
+  Fichier   : /home/user/salaries_mars.csv
+  Date      : 15/03/2026 à 14:32:07
+────────────────────────────────────────────────────────────────────────
+  Encodage       : UTF-8 ✓
+  Fins de ligne  : CRLF ✓
+  Délimiteur     : ; ✓
+────────────────────────────────────────────────────────────────────────
+  ✅ CONFORME   ❌ 0 erreur(s)   ⚠️  2 avert.   ℹ️  3 info(s)   ⏱ 0.12 s   📄 500 ligne(s)
+════════════════════════════════════════════════════════════════════════
+
+  ⚠️  AVERTISSEMENTS (2)
+  ────────────────────────────────────────────────────────────────────────
+  Ligne 47 | SIRET  [Sous-type (siret)]  'SIRET' : le SIRET '12345678900000' échoue à la clé Luhn.
+      Attendu : clé Luhn valide  →  Observé : 12345678900000</code></pre>
+
+  <h2>Architecture</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><code>core/compliance_checker.py</code></td><td>Moteur de vérification — classes <code>ComplianceChecker</code>, <code>ComplianceReport</code>, <code>CheckResult</code></td></tr>
+      <tr><td><code>ui/compliance_ui.py</code></td><td>Dialogue Flet — sélection de fichier, progression, affichage filtrable, export</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+</main>
+
+<!-- Prism.js -->
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+
+<script>
+// ─── Router ──────────────────────────────────────────────
+const pages = {
+  'home':          ['page-home', 'page-home-cards'],
+  'install':       ['page-install'],
+  'concepts':      ['page-concepts'],
+  'field-types':   ['page-field-types'],
+  'field-config':  ['page-field-config'],
+  'nir':           ['page-nir'],
+  'dates':         ['page-dates'],
+  'presets':       ['page-presets'],
+  'folders':       ['page-folders'],
+  'geo':           ['page-geo'],
+  'import-export': ['page-import-export'],
+  'compliance':    ['page-compliance'],
+  'cicd':          ['page-cicd'],
+  'faq':           ['page-faq'],
+};
+
+let current = 'home';
+
+function navigate(pageId) {
+  // Hide all
+  Object.values(pages).flat().forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = 'none';
+      el.classList.remove('active');
+    }
+  });
+
+  // Hide home hero/cards specifically
+  const hero = document.getElementById('page-home');
+  const cards = document.getElementById('page-home-cards');
+  if (hero) hero.style.display = 'none';
+  if (cards) cards.style.display = 'none';
+
+  // Show target
+  const ids = pages[pageId] || pages['home'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (pageId === 'home') {
+        el.style.display = 'block';
+      } else {
+        el.style.display = 'block';
+        el.classList.add('active');
+      }
+    }
+  });
+
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === pageId);
+  });
+
+  current = pageId;
+  window.location.hash = pageId;
+  window.scrollTo(0, 0);
+  closeMenu();
+
+  // Wrap tables
+  setTimeout(() => {
+    document.querySelectorAll('.page.active table, #page-home-cards table').forEach(t => {
+      if (!t.parentElement.classList.contains('table-wrap')) {
+        const wrap = document.createElement('div');
+        wrap.className = 'table-wrap';
+        t.parentNode.insertBefore(wrap, t);
+        wrap.appendChild(t);
+      }
+    });
+    Prism.highlightAll();
+  }, 50);
+}
+
+function toggleMenu() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+
+function closeMenu() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// Init
+window.addEventListener('load', () => {
+  const hash = window.location.hash.slice(1);
+  navigate(hash && pages[hash] ? hash : 'home');
+});
+</script>
+</body>
+</html>

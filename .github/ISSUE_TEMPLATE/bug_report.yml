@@ -1,0 +1,110 @@
+name: 🐛 Rapport de bug
+description: Signalez un comportement inattendu ou une erreur
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de remplir ce formulaire aussi précisément que possible.
+        Cela nous aidera à reproduire et corriger le problème rapidement.
+
+  - type: checkboxes
+    id: existing-issue
+    attributes:
+      label: Vérification préalable
+      description: Avant de soumettre, vérifiez que ce bug n'a pas déjà été signalé.
+      options:
+        - label: J'ai cherché dans les issues existantes et ce bug n'a pas encore été signalé.
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description du bug
+      description: Une description claire et concise du problème.
+      placeholder: "En cliquant sur X, il se passe Y au lieu de Z..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes pour reproduire
+      description: Les étapes exactes pour reproduire le comportement observé.
+      placeholder: |
+        1. Ouvrir l'application
+        2. Aller dans "Dossiers"
+        3. Cliquer sur "Nouveau dossier"
+        4. Remplir le formulaire et cliquer "Enregistrer"
+        5. L'application plante
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+      description: Décrivez ce qui aurait dû se passer.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportement observé
+      description: Décrivez ce qui s'est réellement passé.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Stack trace
+      description: Collez ici tout message d'erreur ou stack trace.
+      render: python
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Captures d'écran
+      description: Ajoutez des captures si pertinent (glissez-déposez ici).
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Système d'exploitation
+      multiple: true
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS 13 (Ventura)
+        - macOS 14 (Sonoma)
+        - macOS 15 (Sequoia)
+        - Ubuntu 22.04
+        - Ubuntu 24.04
+        - Autre Linux
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version de l'application
+      placeholder: "ex: 1.2.3"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Version de Python (si exécuté depuis les sources)
+      placeholder: "ex: 3.11.9"
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte additionnel
+      description: Toute autre information utile (config, données de test, etc.)

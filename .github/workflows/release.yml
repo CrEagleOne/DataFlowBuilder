@@ -1,0 +1,251 @@
+name: Release
+
+on:
+  # Déclenché par un push de tag vX.Y.Z sur main
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"   # pré-releases : v1.2.0-beta.1
+
+  # Ou manuellement
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version à releaser (sans le 'v', ex: 1.2.0)"
+        required: true
+        type: string
+      prerelease:
+        description: "Est-ce une pré-release ?"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # Pour créer la release GitHub
+
+env:
+  APP_NAME: DataFlowBuilder
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  #  Résoudre la version (tag ou input manuel)
+  # ─────────────────────────────────────────────────────────────────────────
+  prepare:
+    name: Prepare release metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version:    ${{ steps.meta.outputs.version }}
+      tag:        ${{ steps.meta.outputs.tag }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolve version & tag
+        id: meta
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
+            VERSION="${RAW_TAG#v}"
+            PRERELEASE=$([[ "$VERSION" == *"-"* ]] && echo "true" || echo "false")
+          else
+            VERSION="${{ inputs.version }}"
+            RAW_TAG="v${VERSION}"
+            PRERELEASE="${{ inputs.prerelease }}"
+          fi
+          echo "version=$VERSION"    >> $GITHUB_OUTPUT
+          echo "tag=$RAW_TAG"        >> $GITHUB_OUTPUT
+          echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
+          echo "🏷️  Version : $VERSION | Tag : $RAW_TAG | Pre-release : $PRERELEASE"
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@git-cliff
+
+      - name: Generate CHANGELOG
+        run: |
+          git cliff \
+            --tag "${{ steps.meta.outputs.tag }}" \
+            --output CHANGELOG.md
+
+      - name: Upload CHANGELOG artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: changelog
+          path: CHANGELOG.md
+          retention-days: 1
+
+  # ─────────────────────────────────────────────────────────────────────────
+  #  Tests complets avant de builder
+  # ─────────────────────────────────────────────────────────────────────────
+  test:
+    name: Tests pre-release
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+
+  # ─────────────────────────────────────────────────────────────────────────
+  #  Build des exécutables (appel du workflow build.yml)
+  # ─────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build executables
+    needs: [prepare, test]
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+    secrets: inherit
+
+  # ─────────────────────────────────────────────────────────────────────────
+  #  Génération des release notes depuis le CHANGELOG
+  # ─────────────────────────────────────────────────────────────────────────
+  release-notes:
+    name: Generate release notes
+    needs: prepare
+    runs-on: ubuntu-latest
+    outputs:
+      notes: ${{ steps.extract.outputs.notes }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@git-cliff
+
+      - name: Extract release notes for this version
+        id: extract
+        run: |
+          CURRENT_TAG="${{ needs.prepare.outputs.tag }}"
+
+          # Trouver le tag précédent en triant par version semver, en excluant le tag courant
+          PREV_TAG=$(git tag --sort=-version:refname \
+            | grep -v "^${CURRENT_TAG}$" \
+            | head -n 1 || echo "")
+
+          echo "Tag courant : $CURRENT_TAG | Tag précédent : $PREV_TAG"
+
+          if [[ -n "$PREV_TAG" ]]; then
+            git cliff "${PREV_TAG}..${CURRENT_TAG}" --strip all -o release-notes.md 2>/dev/null \
+              || echo "No conventional commits found since $PREV_TAG." > release-notes.md
+          else
+            git cliff --strip all -o release-notes.md 2>/dev/null \
+              || echo "First release — no changelog generated." > release-notes.md
+          fi
+
+          [[ -s release-notes.md ]] || echo "No release notes available." > release-notes.md
+
+          cat release-notes.md
+
+          {
+            echo "notes<<RELEASE_NOTES_EOF"
+            cat release-notes.md
+            echo "RELEASE_NOTES_EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: release-notes.md
+
+  # ─────────────────────────────────────────────────────────────────────────
+  #  Création de la GitHub Release avec les exécutables
+  # ─────────────────────────────────────────────────────────────────────────
+  publish:
+    name: Publish GitHub Release
+    needs: [prepare, build, release-notes]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # ── Télécharger tous les artefacts de build ────────────────────────
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.artifact-windows }}
+          path: dist/
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.artifact-macos }}
+          path: dist/
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.artifact-linux }}
+          path: dist/
+
+      - name: Download release notes
+        uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: .
+
+      # ── Générer les checksums SHA256 ───────────────────────────────────
+      - name: Generate SHA256 checksums
+        run: |
+          cd dist
+          find . -maxdepth 1 -type f -exec sha256sum {} + > ../SHA256SUMS.txt
+          cat ../SHA256SUMS.txt
+
+      # ── Créer le tag Git si déclenché manuellement ─────────────────────
+      - name: Create Git tag (manual trigger only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ needs.prepare.outputs.tag }}" \
+            -m "Release ${{ needs.prepare.outputs.version }}"
+          git push origin "${{ needs.prepare.outputs.tag }}"
+
+      # ── Créer la Release GitHub ────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name:   ${{ needs.prepare.outputs.tag }}
+          name:       "🚀 v${{ needs.prepare.outputs.version }}"
+          body_path:  release-notes.md
+          prerelease: ${{ needs.prepare.outputs.prerelease == 'true' }}
+          draft:      false
+          files: |
+            dist/${{ env.APP_NAME }}*.*
+            SHA256SUMS.txt
+          generate_release_notes: false   # On utilise git-cliff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  #  Mise à jour du CHANGELOG.md avec la version publiée
+  # ─────────────────────────────────────────────────────────────────────────
+  update-changelog:
+    name: Stamp version in CHANGELOG
+    needs: [prepare, publish]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
+
+      - name: Configure git
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Download CHANGELOG artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: changelog
+
+      - name: Commit & push
+        run: |
+          git add CHANGELOG.md
+          git commit -m "chore(release): ${{ needs.prepare.outputs.tag }} [skip ci]"
+          git push

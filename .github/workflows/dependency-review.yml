@@ -1,0 +1,62 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Dependency & Security Review
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # ── Analyse des dépendances introduites par la PR ────────────────────
+      # Bloque si : CVE ≥ high OU licence non autorisée
+      - name: Dependency Review (GitHub Advisory DB)
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always
+          allow-licenses: >-
+            MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause,
+            ISC, PSF-2.0, Python-2.0
+
+      # ── Setup Python ─────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # ── Installation des dépendances (env complet nécessaire pour pip-audit) ──
+      - name: Install dependencies
+        run: pip install --quiet -e ".[dev]"
+
+      # ── Audit CVE sur l'environnement installé (transitif inclus) ────────
+      # Audite toutes les libs réellement installées, pas seulement celles
+      # listées explicitement — couvre les dépendances de dépendances.
+      - name: pip-audit (PyPI Advisory DB + OSV)
+        run: |
+          pip install --quiet pip-audit
+          pip-audit \
+            --format json \
+            --output pip-audit-report.json \
+            --progress-spinner off \
+            || true   # ne bloque pas le pipeline, rapport uploadé ci-dessous
+
+      # ── Upload du rapport même en cas d'échec ────────────────────────────
+      - name: Upload pip-audit report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.json
+          retention-days: 14

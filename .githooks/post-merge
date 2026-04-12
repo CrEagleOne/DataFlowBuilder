@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# .githooks/post-merge
+# Exécuté après git merge / git pull.
+# Même logique que post-checkout pour maintenir les dépendances à jour.
+set -euo pipefail
+
+YELLOW='\033[1;33m'; GREEN='\033[0;32m'; NC='\033[0m'
+
+CHANGED=$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD 2>/dev/null || true)
+
+needs_install() {
+  echo "$CHANGED" | grep -qE "$1"
+}
+
+if needs_install "^(requirements.*\.txt|pyproject\.toml|setup\.cfg|setup\.py)$"; then
+  echo -e "${YELLOW}⚠ Dépendances Python modifiées dans ce merge.${NC}"
+  echo -e "${YELLOW}  Lancez : pip install -e '.[dev]'${NC}"
+fi
+
+if needs_install "^(package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$"; then
+  echo -e "${YELLOW}⚠ Dépendances Node.js modifiées dans ce merge.${NC}"
+  echo -e "${YELLOW}  Lancez : npm install${NC}"
+fi
+
+if needs_install "^\.pre-commit-config\.yaml$"; then
+  if command -v pre-commit &>/dev/null; then
+    pre-commit install --install-hooks
+    echo -e "${GREEN}✓ Hooks pre-commit mis à jour après merge.${NC}"
+  fi
+fi

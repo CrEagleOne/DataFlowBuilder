@@ -1,0 +1,67 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+MANIFEST
+
+# ── Environnements virtuels ───────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── Variables d'environnement ─────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Tests & couverture ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.mypy_cache/
+.ruff_cache/
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Données applicatives (générées au runtime) ────────────────────────────────
+# Ne pas versionner le cache API ni les flux personnels sauvegardés localement.
+# Pour partager des flux de démonstration, utiliser le répertoire exemples/.
+/data/
+/flows/
+/logs/
+
+# ── Profiling ─────────────────────────────────────────────────────────────────
+profiling_results/
+*.stats
+*.prof
+
+# ── Flet build ────────────────────────────────────────────────────────────────
+build/
+.flet/
+
+# ── Divers ────────────────────────────────────────────────────────────────────
+*.bak
+*.swp
+*.tmp

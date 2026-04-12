@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# .githooks/pre-push
+# Exécuté avant git push. Lance la suite de tests complète.
+# Le push est bloqué si les tests échouent.
+set -euo pipefail
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+
+REMOTE="$1"
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+
+echo -e "${BLUE}→ pre-push : remote=${REMOTE} branche=${BRANCH}${NC}"
+
+# ── Protection des branches critiques ──────────────────────────────────────
+PROTECTED_BRANCHES=("main" "master" "production" "release")
+for protected in "${PROTECTED_BRANCHES[@]}"; do
+  if [ "$BRANCH" = "$protected" ]; then
+    echo -e "${YELLOW}⚠ Push direct sur '${BRANCH}' détecté.${NC}"
+    echo -e "${YELLOW}  Utilisez une Pull Request pour merger sur cette branche.${NC}"
+    # Décommentez la ligne suivante pour bloquer entièrement le push direct :
+    # exit 1
+  fi
+done
+
+# ── Détection du runner de tests ───────────────────────────────────────────
+run_tests() {
+  if [ -f "pyproject.toml" ] && grep -q "\[tool.pytest" pyproject.toml 2>/dev/null; then
+    echo -e "${BLUE}→ Lancement de pytest...${NC}"
+    python -m pytest --tb=short -q
+  elif [ -f "pytest.ini" ] || [ -f "setup.cfg" ]; then
+    python -m pytest --tb=short -q
+  elif [ -f "Makefile" ] && grep -q "^test:" Makefile; then
+    make test
+  else
+    echo -e "${YELLOW}⚠ Aucun runner de tests configuré, skip.${NC}"
+    return 0
+  fi
+}
+
+# ── Mypy (vérification statique rapide) ────────────────────────────────────
+run_mypy() {
+  if command -v mypy &>/dev/null && [ -f "pyproject.toml" ]; then
+    echo -e "${BLUE}→ Vérification mypy...${NC}"
+    mypy --ignore-missing-imports . || {
+      echo -e "${RED}✗ Mypy a trouvé des erreurs de types.${NC}" >&2
+      return 1
+    }
+  fi
+}
+
+# ── Exécution ───────────────────────────────────────────────────────────────
+run_mypy
+run_tests
+
+echo -e "${GREEN}✓ pre-push OK — push autorisé.${NC}"

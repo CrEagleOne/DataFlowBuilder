@@ -1,0 +1,7 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  requirements-dev.txt — wrapper minimal pour les outils qui exigent un fichier plat.
+#
+#  Source de vérité : pyproject.toml  [project.optional-dependencies]
+#  Équivalent de : pip install -e ".[dev]"
+# ─────────────────────────────────────────────────────────────────────────────
+-e ".[dev]"
