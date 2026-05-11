@@ -21,7 +21,7 @@ jobs:
       # ── Analyse des dépendances introduites par la PR ────────────────────
       # Bloque si : CVE ≥ high OU licence non autorisée
       - name: Dependency Review (GitHub Advisory DB)
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
           comment-summary-in-pr: always
